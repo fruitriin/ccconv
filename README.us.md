@@ -6,6 +6,14 @@ A command-line tool for analyzing Claude Code conversation logs
 
 This tool reads Claude Code conversation logs stored in `~/.claude/projects/` and provides various data views and analysis capabilities.
 
+## Installation
+
+```bash
+npm install --global cclogs
+```
+
+After global installation, you can use it as the `cclogs` command.
+
 ## Usage
 
 ```bash

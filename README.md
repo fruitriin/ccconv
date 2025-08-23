@@ -6,6 +6,14 @@ Claude Code の会話ログを解析するコマンドラインツール
 
 このツールは `~/.claude/projects/` に保存されている Claude Code の会話ログを読み込み、様々な形式でデータの表示・解析を行います。
 
+## インストール
+
+```bash
+npm install --global cclogs
+```
+
+グローバルインストール後は `cclogs` コマンドとして使用できます。
+
 ## 使い方
 
 ```bash
