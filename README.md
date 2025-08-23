@@ -1,4 +1,4 @@
-# claudelog
+# claudelogs
 
 Claude Code の会話ログを解析するコマンドラインツール
 
@@ -10,21 +10,21 @@ Claude Code の会話ログを解析するコマンドラインツール
 
 ```bash
 # 今日のログファイル一覧と統計を表示
-node claudelog.js
+node claudelogs.js
 
 # 全データをJSONで出力
-node claudelog.js raws
+node claudelogs.js raws
 
 # 指定した列のみを出力
-node claudelog.js raws --column=timestamp,type,message.content
+node claudelogs.js raws --column=timestamp,type,message.content
 
 # メッセージタイプでフィルタリング
-node claudelog.js raws --type=user          # ユーザーメッセージのみ（tool_result除外）
-node claudelog.js raws --type=userandtools # ユーザーメッセージ（tool_result含む）
-node claudelog.js raws --type=assistant    # アシスタントメッセージ + tool_result
+node claudelogs.js raws --type=user          # ユーザーメッセージのみ（tool_result除外）
+node claudelogs.js raws --type=userandtools # ユーザーメッセージ（tool_result含む）
+node claudelogs.js raws --type=assistant    # アシスタントメッセージ + tool_result
 
 # 直近4時間のトークン使用量を表示
-node claudelog.js tokens
+node claudelogs.js tokens
 ```
 
 ## 機能
@@ -43,10 +43,10 @@ node claudelog.js tokens
 
 ```bash
 # アシスタントメッセージのタイムスタンプとトークン使用量のみ表示
-node claudelog.js raws --column=timestamp,message.usage --type=assistant
+node claudelogs.js raws --column=timestamp,message.usage --type=assistant
 
 # セッションIDと作業ディレクトリのみ表示
-node claudelog.js raws --column=sessionId,cwd --type=user
+node claudelogs.js raws --column=sessionId,cwd --type=user
 ```
 
 ## データ構造

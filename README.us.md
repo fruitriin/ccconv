@@ -1,4 +1,4 @@
-# claudelog
+# claudelogs
 
 A command-line tool for analyzing Claude Code conversation logs
 
@@ -10,21 +10,21 @@ This tool reads Claude Code conversation logs stored in `~/.claude/projects/` an
 
 ```bash
 # Show today's log files and statistics
-node claudelog.js
+node claudelogs.js
 
 # Export all data as JSON
-node claudelog.js raws
+node claudelogs.js raws
 
 # Filter by specific columns
-node claudelog.js raws --column=timestamp,type,message.content
+node claudelogs.js raws --column=timestamp,type,message.content
 
 # Filter by message type
-node claudelog.js raws --type=user          # User messages only (excludes tool_result)
-node claudelog.js raws --type=userandtools # User messages including tool_result
-node claudelog.js raws --type=assistant    # Assistant messages + tool_result
+node claudelogs.js raws --type=user          # User messages only (excludes tool_result)
+node claudelogs.js raws --type=userandtools # User messages including tool_result
+node claudelogs.js raws --type=assistant    # Assistant messages + tool_result
 
 # Show token usage for last 4 hours
-node claudelog.js tokens
+node claudelogs.js tokens
 ```
 
 ## Features
@@ -43,10 +43,10 @@ node claudelog.js tokens
 
 ```bash
 # Show only timestamp and token usage for assistant messages
-node claudelog.js raws --column=timestamp,message.usage --type=assistant
+node claudelogs.js raws --column=timestamp,message.usage --type=assistant
 
 # Show only session ID and working directory for user messages
-node claudelog.js raws --column=sessionId,cwd --type=user
+node claudelogs.js raws --column=sessionId,cwd --type=user
 ```
 
 ## Data Structure

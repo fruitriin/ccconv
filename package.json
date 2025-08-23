@@ -1,5 +1,5 @@
 {
-  "name": "claudelog",
+  "name": "claudelos",
   "version": "0.0.1",
   "description": "A command-line tool for analyzing Claude Code conversation logs",
   "main": "claudelog.js",
