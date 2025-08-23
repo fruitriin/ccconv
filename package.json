@@ -1,13 +1,13 @@
 {
-  "name": "claudelos",
+  "name": "cclogs",
   "version": "0.0.1",
   "description": "A command-line tool for analyzing Claude Code conversation logs",
-  "main": "claudelog.js",
+  "main": "cclogs.js",
   "bin": {
-    "claudelog": "./claudelog.js"
+    "cclogs": "./cclogs.js"
   },
   "scripts": {
-    "start": "node claudelog.js",
+    "start": "node cclogs.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -24,17 +24,17 @@
     "node": ">=14.0.0"
   },
   "files": [
-    "claudelog.js",
+    "cclogs.js",
     "README.md",
     "README.us.md"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/username/claudelog.git"
+    "url": "git+https://github.com/fruitriin/cclogs.git"
   },
   "bugs": {
-    "url": "https://github.com/username/claudelog/issues"
+    "url": "https://github.com/fruitriin/cclogs/issues"
   },
-  "homepage": "https://github.com/username/claudelog#readme",
+  "homepage": "https://github.com/fruitriin/cclogs#readme",
   "preferGlobal": true
 }
