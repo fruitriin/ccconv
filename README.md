@@ -1,4 +1,4 @@
-# cclogs
+# cchistory
 
 [README(日本語)](README.md) | [README(English)](README.us.md)
 
@@ -11,30 +11,30 @@ Claude Code の会話ログを解析するコマンドラインツール
 ## インストール
 
 ```bash
-npm install --global cclogs
+npm install --global cchistory
 ```
 
-グローバルインストール後は `cclogs` コマンドとして使用できます。
+グローバルインストール後は `cchistory` コマンドとして使用できます。
 
 ## 使い方
 
 ```bash
 # 今日のログファイル一覧と統計を表示
-node cclogs.js
+node cchistory.js
 
 # 全データをJSONで出力
-node cclogs.js raws
+node cchistory.js raws
 
 # 指定した列のみを出力
-node cclogs.js raws --column=timestamp,type,message.content
+node cchistory.js raws --column=timestamp,type,message.content
 
 # メッセージタイプでフィルタリング
-node cclogs.js raws --type=user          # ユーザーメッセージのみ（tool_result除外）
-node cclogs.js raws --type=userandtools # ユーザーメッセージ（tool_result含む）
-node cclogs.js raws --type=assistant    # アシスタントメッセージ + tool_result
+node cchistory.js raws --type=user          # ユーザーメッセージのみ（tool_result除外）
+node cchistory.js raws --type=userandtools # ユーザーメッセージ（tool_result含む）
+node cchistory.js raws --type=assistant    # アシスタントメッセージ + tool_result
 
 # 直近4時間のトークン使用量を表示
-node cclogs.js tokens
+node cchistory.js tokens
 ```
 
 ## 機能
@@ -53,10 +53,10 @@ node cclogs.js tokens
 
 ```bash
 # アシスタントメッセージのタイムスタンプとトークン使用量のみ表示
-node cclogs.js raws --column=timestamp,message.usage --type=assistant
+node cchistory.js raws --column=timestamp,message.usage --type=assistant
 
 # セッションIDと作業ディレクトリのみ表示
-node cclogs.js raws --column=sessionId,cwd --type=user
+node cchistory.js raws --column=sessionId,cwd --type=user
 ```
 
 ## データ構造

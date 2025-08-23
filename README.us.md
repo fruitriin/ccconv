@@ -1,4 +1,4 @@
-# cclogs
+# cchistory
 
 [README(日本語)](README.md) | [README(English)](README.us.md)
 
@@ -11,30 +11,30 @@ This tool reads Claude Code conversation logs stored in `~/.claude/projects/` an
 ## Installation
 
 ```bash
-npm install --global cclogs
+npm install --global cchistory
 ```
 
-After global installation, you can use it as the `cclogs` command.
+After global installation, you can use it as the `cchistory` command.
 
 ## Usage
 
 ```bash
 # Show today's log files and statistics
-node cclogs.js
+node cchistory.js
 
 # Export all data as JSON
-node cclogs.js raws
+node cchistory.js raws
 
 # Filter by specific columns
-node cclogs.js raws --column=timestamp,type,message.content
+node cchistory.js raws --column=timestamp,type,message.content
 
 # Filter by message type
-node cclogs.js raws --type=user          # User messages only (excludes tool_result)
-node cclogs.js raws --type=userandtools # User messages including tool_result
-node cclogs.js raws --type=assistant    # Assistant messages + tool_result
+node cchistory.js raws --type=user          # User messages only (excludes tool_result)
+node cchistory.js raws --type=userandtools # User messages including tool_result
+node cchistory.js raws --type=assistant    # Assistant messages + tool_result
 
 # Show token usage for last 4 hours
-node cclogs.js tokens
+node cchistory.js tokens
 ```
 
 ## Features
@@ -53,10 +53,10 @@ node cclogs.js tokens
 
 ```bash
 # Show only timestamp and token usage for assistant messages
-node cclogs.js raws --column=timestamp,message.usage --type=assistant
+node cchistory.js raws --column=timestamp,message.usage --type=assistant
 
 # Show only session ID and working directory for user messages
-node cclogs.js raws --column=sessionId,cwd --type=user
+node cchistory.js raws --column=sessionId,cwd --type=user
 ```
 
 ## Data Structure
