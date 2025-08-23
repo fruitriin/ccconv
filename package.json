@@ -1,0 +1,40 @@
+{
+  "name": "claudelog",
+  "version": "0.0.1",
+  "description": "A command-line tool for analyzing Claude Code conversation logs",
+  "main": "claudelog.js",
+  "bin": {
+    "claudelog": "./claudelog.js"
+  },
+  "scripts": {
+    "start": "node claudelog.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "log-analysis",
+    "conversation-logs",
+    "cli",
+    "anthropic"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "files": [
+    "claudelog.js",
+    "README.md",
+    "README.us.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/username/claudelog.git"
+  },
+  "bugs": {
+    "url": "https://github.com/username/claudelog/issues"
+  },
+  "homepage": "https://github.com/username/claudelog#readme",
+  "preferGlobal": true
+}
