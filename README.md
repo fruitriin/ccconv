@@ -42,6 +42,9 @@ node ccconv.js raws --format=talk
 # key: value形式のシンプルな出力
 node ccconv.js raws --format=plain
 
+# 新しいメッセージから表示（逆順）
+node ccconv.js raws --reverse
+
 # 今日更新されたプロジェクト一覧を表示（デフォルト）
 node ccconv.js projects
 
@@ -81,6 +84,9 @@ node ccconv.js raws --project=ccconv
 node ccconv.js raws --format=talk     # 会話風形式
 node ccconv.js raws --format=plain    # key: value形式
 
+# 表示順の制御
+node ccconv.js raws --reverse         # 新しいメッセージから表示（逆順）
+
 # メッセージタイプでフィルタリング
 node ccconv.js raws --type=user          # ユーザーメッセージのみ（tool_result除外）
 node ccconv.js raws --type=userandtools # ユーザーメッセージ（tool_result含む）
@@ -113,6 +119,7 @@ node ccconv.js raws --type=assistant    # アシスタントメッセージ + to
 
 - **プロジェクトフィルタ**: `--project=` で特定のプロジェクトのデータのみを表示
 - **出力形式**: `--format=talk`（会話風）、`--format=plain`（key: value形式）
+- **表示順制御**: `--reverse` で新しいメッセージから表示（逆順）
 - **カラムフィルタ**: `--column=` で表示する項目を指定（`--format=plain`と組み合わせ可能）
 - **タイプフィルタ**: `--type=` でメッセージタイプを指定
 - **ネストアクセス**: `message.content[0].text` のような深い階層へのアクセスが可能
@@ -128,6 +135,9 @@ node ccconv.js projects --one-line --sort=tokens
 
 # 全期間のセッションIDと作業ディレクトリのみ表示
 node ccconv.js raws --since=all --column=sessionId,cwd --type=user
+
+# 最新の会話から会話風で表示
+node ccconv.js raws --format=talk --reverse
 ```
 
 ## データ構造

@@ -42,6 +42,9 @@ node ccconv.js raws --format=talk
 # Export in simple key: value format
 node ccconv.js raws --format=plain
 
+# Show messages in reverse order (newest first)
+node ccconv.js raws --reverse
+
 # Show today's updated projects (default)
 node ccconv.js projects
 
@@ -81,6 +84,9 @@ node ccconv.js raws --project=ccconv
 node ccconv.js raws --format=talk     # Conversation style
 node ccconv.js raws --format=plain    # Key: value format
 
+# Control display order
+node ccconv.js raws --reverse         # Show newest messages first (reverse order)
+
 # Filter by message type
 node ccconv.js raws --type=user          # User messages only (excludes tool_result)
 node ccconv.js raws --type=userandtools # User messages including tool_result
@@ -113,6 +119,7 @@ node ccconv.js raws --type=assistant    # Assistant messages + tool_result
 
 - **Project Filter**: Use `--project=` to show data from specific project only
 - **Output Formats**: `--format=talk` (conversation style), `--format=plain` (key: value format)
+- **Display Order**: Use `--reverse` to show newest messages first (reverse chronological order)
 - **Column Filter**: Use `--column=` to specify which fields to display (combinable with `--format=plain`)
 - **Type Filter**: Use `--type=` to filter by message type
 - **Nested Access**: Supports deep property access like `message.content[0].text`
@@ -128,6 +135,9 @@ node ccconv.js projects --one-line --sort=tokens
 
 # Show session ID and working directory for all user messages
 node ccconv.js raws --since=all --column=sessionId,cwd --type=user
+
+# Show latest conversations first in talk format
+node ccconv.js raws --format=talk --reverse
 ```
 
 ## Data Structure

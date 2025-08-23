@@ -32,6 +32,9 @@ node ccconv.js raws --format=talk
 # Export in simple key: value format
 node ccconv.js raws --format=plain
 
+# Show messages in reverse order (newest first)
+node ccconv.js raws --reverse
+
 # Show today's updated projects (default behavior)
 node ccconv.js projects
 
@@ -59,6 +62,9 @@ node ccconv.js raws --project=ccconv
 node ccconv.js raws --format=talk     # Conversation style
 node ccconv.js raws --format=plain    # Key: value format
 
+# Control display order
+node ccconv.js raws --reverse         # Show newest messages first
+
 # Filter by message type
 node ccconv.js raws --type=user          # User messages only (excludes tool_result)
 node ccconv.js raws --type=userandtools # User messages including tool_result
@@ -76,7 +82,7 @@ node ccconv.js tokens
 - `getNestedValue(obj, path)`: Safely accesses nested object properties with support for array indexing (e.g., `message.content[0].text`)
 - `isToolResult(entry)`: Identifies tool execution results in conversation logs
 - `extractArrayValues(array, propertyPath)`: Extracts values from arrays with property path support
-- `showRaws(columnFilter, typeFilter, sinceFilter, projectFilter, formatType)`: Outputs raw conversation data with flexible filtering and multiple output formats
+- `showRaws(columnFilter, typeFilter, sinceFilter, projectFilter, formatType, reverse)`: Outputs raw conversation data with flexible filtering, multiple output formats, and configurable sort order
 - `showProjects(sinceFilter, jsonOutput, sortBy, oneLineOutput)`: Displays project summaries with various formatting options
 - `getTodaysFiles()`: Shows today's log files with statistics
 - `showTokens()`: Aggregates and displays token usage from recent sessions
@@ -102,11 +108,12 @@ The tool processes Claude Code conversation logs with this structure:
    - `--format=talk`: Conversation-style readable output with timestamps
    - `--format=plain`: Simple key: value format output
    - Default JSON format for programmatic use
-5. **Data Filtering**: Type-based filtering with special handling for tool results
-6. **Column Extraction**: Support for nested property access including array notation (`content[].text`)
-7. **Sorting Options**: Projects can be sorted by tokens, messages, or update time
-8. **Token Analytics**: Aggregates token usage from recent sessions
-9. **File Discovery**: Automatically discovers and processes all project logs
+5. **Display Order Control**: `--reverse` option to show newest messages first (reverse chronological order)
+6. **Data Filtering**: Type-based filtering with special handling for tool results
+7. **Column Extraction**: Support for nested property access including array notation (`content[].text`)
+8. **Sorting Options**: Projects can be sorted by tokens, messages, or update time
+9. **Token Analytics**: Aggregates token usage from recent sessions
+10. **File Discovery**: Automatically discovers and processes all project logs
 
 The tool is designed to work with Claude Code's internal logging format and provides comprehensive ways to analyze conversation patterns, project activity, token usage, and tool interactions.
 

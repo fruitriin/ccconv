@@ -14,6 +14,7 @@
  *   --project=    指定プロジェクトのデータのみを出力
  *   --format=talk 会話風の読みやすい形式で出力
  *   --format=plain key: value形式のシンプルな出力
+ *   --reverse     新しいメッセージから表示（逆順）
  *   --column=     表示するカラムを絞り込む
  *   --type=       メッセージタイプでフィルタ（user/assistant/userandtools）
  * 
@@ -187,7 +188,7 @@ function extractArrayValues(array, propertyPath) {
   }).filter(value => value !== undefined);
 }
 
-function showRaws(columnFilter, typeFilter, sinceFilter, projectFilter, formatType) {
+function showRaws(columnFilter, typeFilter, sinceFilter, projectFilter, formatType, reverse) {
   let data = getAllData();
   
   // sinceフィルタの適用
@@ -239,12 +240,19 @@ function showRaws(columnFilter, typeFilter, sinceFilter, projectFilter, formatTy
     }
   }
   
+  // ソート処理（reverseオプション適用）
+  if (reverse) {
+    data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  } else {
+    data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  }
+  
   // フォーマット形式の処理
   if (formatType === 'talk') {
-    showTalkFormat(data);
+    showTalkFormat(data, reverse);
     return;
   } else if (formatType === 'plain') {
-    showPlainFormat(data, columnFilter);
+    showPlainFormat(data, columnFilter, reverse);
     return;
   }
   
@@ -271,9 +279,8 @@ function showRaws(columnFilter, typeFilter, sinceFilter, projectFilter, formatTy
   }
 }
 
-function showTalkFormat(data) {
-  // データをタイムスタンプ順にソート
-  data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+function showTalkFormat(data, reverse) {
+  // データは既に showRaws でソートされているので、ここでは何もしない
   
   data.forEach(entry => {
     // タイムスタンプの有効性をチェック
@@ -369,9 +376,8 @@ function showTalkFormat(data) {
   });
 }
 
-function showPlainFormat(data, columnFilter) {
-  // データをタイムスタンプ順にソート
-  data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+function showPlainFormat(data, columnFilter, reverse) {
+  // データは既に showRaws でソートされているので、ここでは何もしない
   
   data.forEach((entry, index) => {
     if (columnFilter) {
@@ -769,6 +775,7 @@ function showUsage() {
   node ccconv.js raws --project=ccconv  指定プロジェクトのデータのみを出力
   node ccconv.js raws --format=talk    会話風の読みやすい形式で出力
   node ccconv.js raws --format=plain   key: value形式のシンプルな出力
+  node ccconv.js raws --reverse        新しいメッセージから表示（逆順）
   node ccconv.js raws --column=timestamp,type  指定した列のみを出力
   node ccconv.js raws --type=user  ユーザーメッセージのみ（tool_result除外）
   node ccconv.js raws --type=userandtools  ユーザーメッセージ（tool_result含む）
@@ -783,7 +790,7 @@ function showUsage() {
 
 例:
   node ccconv.js raws --since=2024-08-20 --column=timestamp,message.usage --type=assistant
-  node ccconv.js raws --project=ccconv --format=talk
+  node ccconv.js raws --project=ccconv --format=talk --reverse
   node ccconv.js raws --format=plain --column=message.content,timestamp
   node ccconv.js projects --since=2024-08-20 --sort=tokens
   node ccconv.js projects --one-line --sort=messages`);
@@ -830,7 +837,10 @@ if (args.length === 0) {
     formatType = formatArg.split('--format=')[1];
   }
   
-  showRaws(columns, typeFilter, sinceFilter, projectFilter, formatType);
+  // --reverse フラグのチェック
+  const reverse = args.includes('--reverse');
+  
+  showRaws(columns, typeFilter, sinceFilter, projectFilter, formatType, reverse);
 } else if (args[0] === 'projects') {
   // --since= オプションのチェック
   const sinceArg = args.find(arg => arg.startsWith('--since='));
