@@ -1,5 +1,7 @@
 # cclogs
 
+[README(日本語)](README.md) | [README(English)](README.us.md)
+
 Claude Code の会話ログを解析するコマンドラインツール
 
 ## 概要
