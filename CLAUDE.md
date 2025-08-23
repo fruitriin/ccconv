@@ -14,10 +14,33 @@ This project has no package.json, so it runs directly with Node.js:
 # Show today's log files and statistics
 node ccconv.js
 
-# Export all data as JSON
+# Export today's conversation data as JSON (default behavior)
 node ccconv.js raws
 
-# Filter by specific columns
+# Export all conversation data as JSON
+node ccconv.js raws --since=all
+
+# Export data from specified date onwards
+node ccconv.js raws --since=2024-08-20
+
+# Show today's updated projects (default behavior)
+node ccconv.js projects
+
+# Show all projects with summary
+node ccconv.js projects --since=all
+
+# Display projects in compact one-line format
+node ccconv.js projects --one-line
+
+# Sort projects by various criteria
+node ccconv.js projects --sort=tokens    # Sort by token count
+node ccconv.js projects --sort=messages  # Sort by message count
+node ccconv.js projects --sort=update    # Sort by last update time
+
+# Output projects in JSON format
+node ccconv.js projects --json
+
+# Filter raw data by specific columns
 node ccconv.js raws --column=timestamp,type,message.content
 
 # Filter by message type
@@ -37,10 +60,15 @@ node ccconv.js tokens
 - `getNestedValue(obj, path)`: Safely accesses nested object properties with support for array indexing (e.g., `message.content[0].text`)
 - `isToolResult(entry)`: Identifies tool execution results in conversation logs
 - `extractArrayValues(array, propertyPath)`: Extracts values from arrays with property path support
+- `showRaws(columnFilter, typeFilter, sinceFilter)`: Outputs raw conversation data with flexible filtering
+- `showProjects(sinceFilter, jsonOutput, sortBy, oneLineOutput)`: Displays project summaries with various formatting options
+- `getTodaysFiles()`: Shows today's log files with statistics
+- `showTokens()`: Aggregates and displays token usage from recent sessions
 
 ### Data Structure
 
 The tool processes Claude Code conversation logs with this structure:
+
 - Each entry contains metadata: `sessionId`, `timestamp`, `cwd`, `gitBranch`, `type` (user/assistant)
 - User messages: `{role: "user", content: "text"}`
 - Assistant messages: Include `usage` token counts and `content` arrays with text/tool_use
@@ -48,12 +76,19 @@ The tool processes Claude Code conversation logs with this structure:
 
 ### Key Features
 
-1. **Data Filtering**: Type-based filtering with special handling for tool results
-2. **Column Extraction**: Support for nested property access including array notation (`content[].text`)
-3. **Token Analytics**: Aggregates token usage from recent sessions
-4. **File Discovery**: Automatically discovers and processes all project logs
+1. **Date Filtering**: Flexible `--since` option supporting specific dates or `all` for no filtering (defaults to today)
+2. **Project Analysis**: Comprehensive project summaries with file counts, message statistics, and token usage
+3. **Multiple Display Formats**: 
+   - Standard detailed view
+   - Compact one-line format with emoji decorations (💬 ⏱️ 📅)
+   - JSON output for programmatic use
+4. **Data Filtering**: Type-based filtering with special handling for tool results
+5. **Column Extraction**: Support for nested property access including array notation (`content[].text`)
+6. **Sorting Options**: Projects can be sorted by tokens, messages, or update time
+7. **Token Analytics**: Aggregates token usage from recent sessions
+8. **File Discovery**: Automatically discovers and processes all project logs
 
-The tool is designed to work with Claude Code's internal logging format and provides ways to handle conversation data, token usage, and tool interactions.
+The tool is designed to work with Claude Code's internal logging format and provides comprehensive ways to analyze conversation patterns, project activity, token usage, and tool interactions.
 
 ## Documentation
 

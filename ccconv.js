@@ -2,21 +2,26 @@
 
 /**
  * 
- * ccconv command
+ * ccconv command - Claude Code Conversations
+ * Claude Code の会話ログをコマンドラインで扱うためのツール
  * 
- * 
- * (no option) 使い方を表示する
+ * (no option) 今日のファイル一覧を表示
  * 
  * サブコマンド
- * raws   そのままのデータをjsonで出力する
- *   --column=表示するカラムを絞り込む
- *   --type=[user|assistant] ユーザー/アシスタントの出力のみ
- * tokens 直近4時間のセッションを抜き出してトークンを合計する
+ * raws   会話データをJSON形式で出力（デフォルト：今日のデータのみ）
+ *   --since=all   全データを出力
+ *   --since=日付  指定日以降のデータを出力
+ *   --column=     表示するカラムを絞り込む
+ *   --type=       メッセージタイプでフィルタ（user/assistant/userandtools）
  * 
- * TODO
- * projects  プロジェクトのサマリを一覧する
- * raws --prject=指定のプロジェクトのみ
+ * projects プロジェクトの一覧とサマリを表示（デフォルト：今日更新分のみ）
+ *   --since=all   全プロジェクトを表示
+ *   --since=日付  指定日以降更新のプロジェクトを表示
+ *   --json        JSON形式で出力
+ *   --one-line    コンパクトな1行形式で表示
+ *   --sort=       ソート順（tokens/messages/update）
  * 
+ * tokens 直近4時間のトークン使用量を表示
  * 
  * データ構造
  {
