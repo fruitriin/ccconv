@@ -1,8 +1,8 @@
-# ccconv
+# ccconv - Claude Code Conversations
 
 [README(日本語)](README.md) | [README(English)](README.us.md)
 
-Claude Code の会話ログを解析するコマンドラインツール
+Claude Code の会話ログをコマンドラインで扱うためのツール
 
 ## 概要
 
@@ -40,11 +40,13 @@ node ccconv.js tokens
 ## 機能
 
 ### データ表示
+
 - **デフォルト**: 今日作成・更新されたファイルの一覧、サイズ、メッセージ数、トークン使用量を表示
-- **raws**: 全ての会話データをJSONフォーマットで出力
-- **tokens**: 直近4時間のトークン使用量の合計を表示
+- **raws**: 全ての会話データを JSON フォーマットで出力
+- **tokens**: 直近 4 時間のトークン使用量の合計を表示
 
 ### フィルタリング機能
+
 - **カラムフィルタ**: `--column=` で表示する項目を指定
 - **タイプフィルタ**: `--type=` でメッセージタイプを指定
 - **ネストアクセス**: `message.content[0].text` のような深い階層へのアクセスが可能

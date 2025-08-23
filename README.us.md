@@ -2,11 +2,11 @@
 
 [README(日本語)](README.md) | [README(English)](README.us.md)
 
-A command-line tool for analyzing Claude Code conversation logs
+A command-line tool for handling Claude Code conversation logs
 
 ## Overview
 
-This tool reads Claude Code conversation logs stored in `~/.claude/projects/` and provides various data views and analysis capabilities.
+This tool reads Claude Code conversation logs stored in `~/.claude/projects/` and provides various ways to display and handle the data.
 
 ## Installation
 

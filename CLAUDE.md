@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Claude Code log analysis tool (`ccconv.js`) written in Node.js. It analyzes conversation logs stored in the Claude Code projects directory (`~/.claude/projects/`) and provides various data views and statistics.
+This is a Claude Code log handling tool (`ccconv.js`) written in Node.js. It reads conversation logs stored in the Claude Code projects directory (`~/.claude/projects/`) and provides various ways to display and handle the data.
 
 ## Commands
 
@@ -53,7 +53,7 @@ The tool processes Claude Code conversation logs with this structure:
 3. **Token Analytics**: Aggregates token usage from recent sessions
 4. **File Discovery**: Automatically discovers and processes all project logs
 
-The tool is designed to work with Claude Code's internal logging format and provides insights into conversation patterns, token usage, and tool interactions.
+The tool is designed to work with Claude Code's internal logging format and provides ways to handle conversation data, token usage, and tool interactions.
 
 ## Documentation
 
