@@ -1,4 +1,4 @@
-# cchistory
+# ccconv
 
 [README(日本語)](README.md) | [README(English)](README.us.md)
 
@@ -11,30 +11,30 @@ Claude Code の会話ログを解析するコマンドラインツール
 ## インストール
 
 ```bash
-npm install --global cchistory
+npm install --global ccconv
 ```
 
-グローバルインストール後は `cchistory` コマンドとして使用できます。
+グローバルインストール後は `ccconv` コマンドとして使用できます。
 
 ## 使い方
 
 ```bash
 # 今日のログファイル一覧と統計を表示
-node cchistory.js
+node ccconv.js
 
 # 全データをJSONで出力
-node cchistory.js raws
+node ccconv.js raws
 
 # 指定した列のみを出力
-node cchistory.js raws --column=timestamp,type,message.content
+node ccconv.js raws --column=timestamp,type,message.content
 
 # メッセージタイプでフィルタリング
-node cchistory.js raws --type=user          # ユーザーメッセージのみ（tool_result除外）
-node cchistory.js raws --type=userandtools # ユーザーメッセージ（tool_result含む）
-node cchistory.js raws --type=assistant    # アシスタントメッセージ + tool_result
+node ccconv.js raws --type=user          # ユーザーメッセージのみ（tool_result除外）
+node ccconv.js raws --type=userandtools # ユーザーメッセージ（tool_result含む）
+node ccconv.js raws --type=assistant    # アシスタントメッセージ + tool_result
 
 # 直近4時間のトークン使用量を表示
-node cchistory.js tokens
+node ccconv.js tokens
 ```
 
 ## 機能
@@ -53,10 +53,10 @@ node cchistory.js tokens
 
 ```bash
 # アシスタントメッセージのタイムスタンプとトークン使用量のみ表示
-node cchistory.js raws --column=timestamp,message.usage --type=assistant
+node ccconv.js raws --column=timestamp,message.usage --type=assistant
 
 # セッションIDと作業ディレクトリのみ表示
-node cchistory.js raws --column=sessionId,cwd --type=user
+node ccconv.js raws --column=sessionId,cwd --type=user
 ```
 
 ## データ構造

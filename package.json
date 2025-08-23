@@ -1,13 +1,13 @@
 {
-  "name": "cchistory",
+  "name": "ccconv",
   "version": "0.0.1",
   "description": "A command-line tool for analyzing Claude Code conversation logs",
-  "main": "cchistory.js",
+  "main": "ccconv.js",
   "bin": {
-    "cchistory": "./cchistory.js"
+    "ccconv": "./ccconv.js"
   },
   "scripts": {
-    "start": "node cchistory.js",
+    "start": "node ccconv.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -24,17 +24,17 @@
     "node": ">=14.0.0"
   },
   "files": [
-    "cchistory.js",
+    "ccconv.js",
     "README.md",
     "README.us.md"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fruitriin/cchistory.git"
+    "url": "git+https://github.com/fruitriin/ccconv.git"
   },
   "bugs": {
-    "url": "https://github.com/fruitriin/cchistory/issues"
+    "url": "https://github.com/fruitriin/ccconv/issues"
   },
-  "homepage": "https://github.com/fruitriin/cchistory#readme",
+  "homepage": "https://github.com/fruitriin/ccconv#readme",
   "preferGlobal": true
 }
