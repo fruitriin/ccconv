@@ -36,6 +36,12 @@ node ccconv.js raws --since=2024-08-20
 # Export data from specific project only
 node ccconv.js raws --project=ccconv
 
+# Export in conversation-style readable format
+node ccconv.js raws --format=talk
+
+# Export in simple key: value format
+node ccconv.js raws --format=plain
+
 # Show today's updated projects (default)
 node ccconv.js projects
 
@@ -71,6 +77,10 @@ node ccconv.js raws --column=timestamp,type,message.content
 # Filter by specific project
 node ccconv.js raws --project=ccconv
 
+# Specify output format
+node ccconv.js raws --format=talk     # Conversation style
+node ccconv.js raws --format=plain    # Key: value format
+
 # Filter by message type
 node ccconv.js raws --type=user          # User messages only (excludes tool_result)
 node ccconv.js raws --type=userandtools # User messages including tool_result
@@ -99,10 +109,11 @@ node ccconv.js raws --type=assistant    # Assistant messages + tool_result
 - **--json**: JSON format output
 - **--sort=**: Specify sort order (tokens/messages/update)
 
-### Other Filtering Capabilities
+### Other Features
 
 - **Project Filter**: Use `--project=` to show data from specific project only
-- **Column Filter**: Use `--column=` to specify which fields to display
+- **Output Formats**: `--format=talk` (conversation style), `--format=plain` (key: value format)
+- **Column Filter**: Use `--column=` to specify which fields to display (combinable with `--format=plain`)
 - **Type Filter**: Use `--type=` to filter by message type
 - **Nested Access**: Supports deep property access like `message.content[0].text`
 

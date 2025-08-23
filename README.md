@@ -36,6 +36,12 @@ node ccconv.js raws --since=2024-08-20
 # 指定プロジェクトのデータのみをJSONで出力
 node ccconv.js raws --project=ccconv
 
+# 会話風の読みやすい形式で出力
+node ccconv.js raws --format=talk
+
+# key: value形式のシンプルな出力
+node ccconv.js raws --format=plain
+
 # 今日更新されたプロジェクト一覧を表示（デフォルト）
 node ccconv.js projects
 
@@ -71,6 +77,10 @@ node ccconv.js raws --column=timestamp,type,message.content
 # 指定プロジェクトのデータのみを出力
 node ccconv.js raws --project=ccconv
 
+# 出力形式の指定
+node ccconv.js raws --format=talk     # 会話風形式
+node ccconv.js raws --format=plain    # key: value形式
+
 # メッセージタイプでフィルタリング
 node ccconv.js raws --type=user          # ユーザーメッセージのみ（tool_result除外）
 node ccconv.js raws --type=userandtools # ユーザーメッセージ（tool_result含む）
@@ -99,10 +109,11 @@ node ccconv.js raws --type=assistant    # アシスタントメッセージ + to
 - **--json**: JSON形式で出力
 - **--sort=**: ソート順を指定（tokens/messages/update）
 
-### その他のフィルタリング機能
+### その他の機能
 
 - **プロジェクトフィルタ**: `--project=` で特定のプロジェクトのデータのみを表示
-- **カラムフィルタ**: `--column=` で表示する項目を指定
+- **出力形式**: `--format=talk`（会話風）、`--format=plain`（key: value形式）
+- **カラムフィルタ**: `--column=` で表示する項目を指定（`--format=plain`と組み合わせ可能）
 - **タイプフィルタ**: `--type=` でメッセージタイプを指定
 - **ネストアクセス**: `message.content[0].text` のような深い階層へのアクセスが可能
 

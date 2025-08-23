@@ -12,6 +12,8 @@
  *   --since=all   全データを出力
  *   --since=日付  指定日以降のデータを出力
  *   --project=    指定プロジェクトのデータのみを出力
+ *   --format=talk 会話風の読みやすい形式で出力
+ *   --format=plain key: value形式のシンプルな出力
  *   --column=     表示するカラムを絞り込む
  *   --type=       メッセージタイプでフィルタ（user/assistant/userandtools）
  * 
@@ -185,7 +187,7 @@ function extractArrayValues(array, propertyPath) {
   }).filter(value => value !== undefined);
 }
 
-function showRaws(columnFilter, typeFilter, sinceFilter, projectFilter) {
+function showRaws(columnFilter, typeFilter, sinceFilter, projectFilter, formatType) {
   let data = getAllData();
   
   // sinceフィルタの適用
@@ -237,6 +239,15 @@ function showRaws(columnFilter, typeFilter, sinceFilter, projectFilter) {
     }
   }
   
+  // フォーマット形式の処理
+  if (formatType === 'talk') {
+    showTalkFormat(data);
+    return;
+  } else if (formatType === 'plain') {
+    showPlainFormat(data, columnFilter);
+    return;
+  }
+  
   if (columnFilter) {
     const filtered = data.map(entry => {
       const result = {};
@@ -258,6 +269,180 @@ function showRaws(columnFilter, typeFilter, sinceFilter, projectFilter) {
   } else {
     console.log(JSON.stringify(data, null, 2));
   }
+}
+
+function showTalkFormat(data) {
+  // データをタイムスタンプ順にソート
+  data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  
+  data.forEach(entry => {
+    // タイムスタンプの有効性をチェック
+    if (!entry.timestamp) return;
+    
+    const timestamp = new Date(entry.timestamp);
+    if (isNaN(timestamp.getTime())) return; // 無効な日付をスキップ
+    
+    // ローカルタイムゾーンで表示
+    const year = timestamp.getFullYear();
+    const month = String(timestamp.getMonth() + 1).padStart(2, '0');
+    const day = String(timestamp.getDate()).padStart(2, '0');
+    const hours = String(timestamp.getHours()).padStart(2, '0');
+    const minutes = String(timestamp.getMinutes()).padStart(2, '0');
+    const seconds = String(timestamp.getSeconds()).padStart(2, '0');
+    
+    const dateStr = `${year}-${month}-${day}`;
+    const timeStr = `${hours}:${minutes}:${seconds}`;
+    
+    if (entry.type === 'user' && !isToolResult(entry)) {
+      // ユーザーメッセージ
+      let content = '';
+      if (entry.message && entry.message.content) {
+        if (typeof entry.message.content === 'string') {
+          content = entry.message.content;
+        } else if (Array.isArray(entry.message.content)) {
+          // 複数のコンテンツがある場合は結合
+          content = entry.message.content
+            .filter(item => item.type === 'text')
+            .map(item => item.text)
+            .join('\n');
+        }
+      }
+      
+      if (content.trim()) {
+        console.log(`[${dateStr} ${timeStr}] User:`);
+        console.log(content.trim());
+        console.log('');
+      }
+    } else if (entry.type === 'assistant') {
+      // アシスタントメッセージ
+      let content = '';
+      if (entry.message && entry.message.content && Array.isArray(entry.message.content)) {
+        content = entry.message.content
+          .filter(item => item.type === 'text')
+          .map(item => item.text)
+          .join('\n');
+      }
+      
+      if (content.trim()) {
+        console.log(`[${dateStr} ${timeStr}] Assistant:`);
+        console.log(content.trim());
+        console.log('');
+      }
+    } else if (entry.type === 'user' && isToolResult(entry)) {
+      // ツール実行結果
+      let toolName = 'Tool';
+      let toolContent = '';
+      
+      if (entry.message && entry.message.content) {
+        if (Array.isArray(entry.message.content)) {
+          const toolResult = entry.message.content.find(item => item.type === 'tool_result');
+          if (toolResult) {
+            toolName = toolResult.name || 'Tool';
+            if (typeof toolResult.content === 'string') {
+              toolContent = toolResult.content;
+            } else if (Array.isArray(toolResult.content)) {
+              toolContent = toolResult.content
+                .filter(item => item.type === 'text')
+                .map(item => item.text)
+                .join('\n');
+            }
+          }
+        } else if (entry.message.content.type === 'tool_result') {
+          toolName = entry.message.content.name || 'Tool';
+          toolContent = entry.message.content.content || '';
+        }
+      }
+      
+      if (toolContent.trim()) {
+        console.log(`[${dateStr} ${timeStr}] Tool: ${toolName}`);
+        // ツール結果が長い場合は最初の数行のみ表示
+        const lines = toolContent.trim().split('\n');
+        if (lines.length > 5) {
+          console.log(lines.slice(0, 3).join('\n'));
+          console.log(`... (${lines.length - 3} more lines)`);
+        } else {
+          console.log(toolContent.trim());
+        }
+        console.log('');
+      }
+    }
+  });
+}
+
+function showPlainFormat(data, columnFilter) {
+  // データをタイムスタンプ順にソート
+  data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  
+  data.forEach((entry, index) => {
+    if (columnFilter) {
+      // 特定の列のみ表示
+      const columns = columnFilter.split(',');
+      columns.forEach(col => {
+        const trimmedCol = col.trim();
+        let value;
+        
+        // 配列展開記法 message.content[].text の処理
+        if (trimmedCol.includes('[].')) {
+          const [arrayPath, propertyPath] = trimmedCol.split('[].');
+          const arrayValue = getNestedValue(entry, arrayPath);
+          value = extractArrayValues(arrayValue, propertyPath);
+        } else {
+          value = getNestedValue(entry, trimmedCol);
+        }
+        
+        // 値を文字列に変換
+        let displayValue;
+        if (value === null || value === undefined) {
+          displayValue = '';
+        } else if (Array.isArray(value)) {
+          // 配列の場合、テキストコンテンツを抽出
+          if (value.length > 0 && value[0].type === 'text') {
+            displayValue = value.map(item => item.text).join(' ');
+          } else {
+            displayValue = value.join(', ');
+          }
+        } else if (typeof value === 'object') {
+          // message.contentの場合は特別処理
+          if (trimmedCol === 'message.content' && typeof value === 'string') {
+            displayValue = value;
+          } else if (trimmedCol === 'message.content' && Array.isArray(value)) {
+            displayValue = value.filter(item => item.type === 'text').map(item => item.text).join(' ');
+          } else {
+            displayValue = JSON.stringify(value);
+          }
+        } else {
+          displayValue = String(value);
+        }
+        
+        console.log(`${trimmedCol}: ${displayValue}`);
+      });
+    } else {
+      // 全てのプロパティを表示（デフォルト）
+      Object.keys(entry).forEach(key => {
+        if (key.startsWith('_')) return; // 内部プロパティはスキップ
+        
+        let value = entry[key];
+        let displayValue;
+        
+        if (value === null || value === undefined) {
+          displayValue = '';
+        } else if (Array.isArray(value)) {
+          displayValue = value.join(', ');
+        } else if (typeof value === 'object') {
+          displayValue = JSON.stringify(value);
+        } else {
+          displayValue = String(value);
+        }
+        
+        console.log(`${key}: ${displayValue}`);
+      });
+    }
+    
+    // エントリー間の区切り（最後のエントリー以外）
+    if (index < data.length - 1) {
+      console.log('');
+    }
+  });
 }
 
 function showTokens() {
@@ -582,6 +767,8 @@ function showUsage() {
   node ccconv.js raws --since=all  全データをJSONで出力
   node ccconv.js raws --since=2024-08-20  指定日以降のデータをJSONで出力
   node ccconv.js raws --project=ccconv  指定プロジェクトのデータのみを出力
+  node ccconv.js raws --format=talk    会話風の読みやすい形式で出力
+  node ccconv.js raws --format=plain   key: value形式のシンプルな出力
   node ccconv.js raws --column=timestamp,type  指定した列のみを出力
   node ccconv.js raws --type=user  ユーザーメッセージのみ（tool_result除外）
   node ccconv.js raws --type=userandtools  ユーザーメッセージ（tool_result含む）
@@ -596,7 +783,8 @@ function showUsage() {
 
 例:
   node ccconv.js raws --since=2024-08-20 --column=timestamp,message.usage --type=assistant
-  node ccconv.js raws --project=ccconv --column=sessionId,cwd --type=user
+  node ccconv.js raws --project=ccconv --format=talk
+  node ccconv.js raws --format=plain --column=message.content,timestamp
   node ccconv.js projects --since=2024-08-20 --sort=tokens
   node ccconv.js projects --one-line --sort=messages`);
 }
@@ -635,7 +823,14 @@ if (args.length === 0) {
     projectFilter = projectArg.split('--project=')[1];
   }
   
-  showRaws(columns, typeFilter, sinceFilter, projectFilter);
+  // --format= オプションのチェック
+  const formatArg = args.find(arg => arg.startsWith('--format='));
+  let formatType = null;
+  if (formatArg) {
+    formatType = formatArg.split('--format=')[1];
+  }
+  
+  showRaws(columns, typeFilter, sinceFilter, projectFilter, formatType);
 } else if (args[0] === 'projects') {
   // --since= オプションのチェック
   const sinceArg = args.find(arg => arg.startsWith('--since='));
