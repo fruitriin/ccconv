@@ -33,6 +33,9 @@ node ccconv.js raws --since=all
 # Export data from specified date onwards
 node ccconv.js raws --since=2024-08-20
 
+# Export data from specific project only
+node ccconv.js raws --project=ccconv
+
 # Show today's updated projects (default)
 node ccconv.js projects
 
@@ -65,6 +68,9 @@ node ccconv.js projects --json
 # Filter by specific columns
 node ccconv.js raws --column=timestamp,type,message.content
 
+# Filter by specific project
+node ccconv.js raws --project=ccconv
+
 # Filter by message type
 node ccconv.js raws --type=user          # User messages only (excludes tool_result)
 node ccconv.js raws --type=userandtools # User messages including tool_result
@@ -95,6 +101,7 @@ node ccconv.js raws --type=assistant    # Assistant messages + tool_result
 
 ### Other Filtering Capabilities
 
+- **Project Filter**: Use `--project=` to show data from specific project only
 - **Column Filter**: Use `--column=` to specify which fields to display
 - **Type Filter**: Use `--type=` to filter by message type
 - **Nested Access**: Supports deep property access like `message.content[0].text`

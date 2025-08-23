@@ -23,6 +23,9 @@ node ccconv.js raws --since=all
 # Export data from specified date onwards
 node ccconv.js raws --since=2024-08-20
 
+# Export data from specific project only
+node ccconv.js raws --project=ccconv
+
 # Show today's updated projects (default behavior)
 node ccconv.js projects
 
@@ -43,6 +46,9 @@ node ccconv.js projects --json
 # Filter raw data by specific columns
 node ccconv.js raws --column=timestamp,type,message.content
 
+# Filter by specific project
+node ccconv.js raws --project=ccconv
+
 # Filter by message type
 node ccconv.js raws --type=user          # User messages only (excludes tool_result)
 node ccconv.js raws --type=userandtools # User messages including tool_result
@@ -60,7 +66,7 @@ node ccconv.js tokens
 - `getNestedValue(obj, path)`: Safely accesses nested object properties with support for array indexing (e.g., `message.content[0].text`)
 - `isToolResult(entry)`: Identifies tool execution results in conversation logs
 - `extractArrayValues(array, propertyPath)`: Extracts values from arrays with property path support
-- `showRaws(columnFilter, typeFilter, sinceFilter)`: Outputs raw conversation data with flexible filtering
+- `showRaws(columnFilter, typeFilter, sinceFilter, projectFilter)`: Outputs raw conversation data with flexible filtering
 - `showProjects(sinceFilter, jsonOutput, sortBy, oneLineOutput)`: Displays project summaries with various formatting options
 - `getTodaysFiles()`: Shows today's log files with statistics
 - `showTokens()`: Aggregates and displays token usage from recent sessions

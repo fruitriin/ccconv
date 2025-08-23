@@ -11,6 +11,7 @@
  * raws   会話データをJSON形式で出力（デフォルト：今日のデータのみ）
  *   --since=all   全データを出力
  *   --since=日付  指定日以降のデータを出力
+ *   --project=    指定プロジェクトのデータのみを出力
  *   --column=     表示するカラムを絞り込む
  *   --type=       メッセージタイプでフィルタ（user/assistant/userandtools）
  * 
@@ -184,7 +185,7 @@ function extractArrayValues(array, propertyPath) {
   }).filter(value => value !== undefined);
 }
 
-function showRaws(columnFilter, typeFilter, sinceFilter) {
+function showRaws(columnFilter, typeFilter, sinceFilter, projectFilter) {
   let data = getAllData();
   
   // sinceフィルタの適用
@@ -205,6 +206,14 @@ function showRaws(columnFilter, typeFilter, sinceFilter) {
     data = data.filter(entry => {
       const entryDate = new Date(entry.timestamp);
       return entryDate >= sinceDate;
+    });
+  }
+  
+  // projectフィルタの適用
+  if (projectFilter) {
+    data = data.filter(entry => {
+      // _projectDir が指定されたプロジェクト名を含むかチェック
+      return entry._projectDir && entry._projectDir.includes(projectFilter);
     });
   }
   
@@ -572,6 +581,7 @@ function showUsage() {
   node ccconv.js raws              今日のデータをJSONで出力（デフォルト）
   node ccconv.js raws --since=all  全データをJSONで出力
   node ccconv.js raws --since=2024-08-20  指定日以降のデータをJSONで出力
+  node ccconv.js raws --project=ccconv  指定プロジェクトのデータのみを出力
   node ccconv.js raws --column=timestamp,type  指定した列のみを出力
   node ccconv.js raws --type=user  ユーザーメッセージのみ（tool_result除外）
   node ccconv.js raws --type=userandtools  ユーザーメッセージ（tool_result含む）
@@ -586,7 +596,7 @@ function showUsage() {
 
 例:
   node ccconv.js raws --since=2024-08-20 --column=timestamp,message.usage --type=assistant
-  node ccconv.js raws --since=all --column=sessionId,cwd --type=user
+  node ccconv.js raws --project=ccconv --column=sessionId,cwd --type=user
   node ccconv.js projects --since=2024-08-20 --sort=tokens
   node ccconv.js projects --one-line --sort=messages`);
 }
@@ -618,7 +628,14 @@ if (args.length === 0) {
     sinceFilter = sinceArg.split('--since=')[1];
   }
   
-  showRaws(columns, typeFilter, sinceFilter);
+  // --project= オプションのチェック
+  const projectArg = args.find(arg => arg.startsWith('--project='));
+  let projectFilter = null;
+  if (projectArg) {
+    projectFilter = projectArg.split('--project=')[1];
+  }
+  
+  showRaws(columns, typeFilter, sinceFilter, projectFilter);
 } else if (args[0] === 'projects') {
   // --since= オプションのチェック
   const sinceArg = args.find(arg => arg.startsWith('--since='));

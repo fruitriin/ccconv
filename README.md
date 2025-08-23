@@ -33,6 +33,9 @@ node ccconv.js raws --since=all
 # 指定日以降の会話データをJSONで出力
 node ccconv.js raws --since=2024-08-20
 
+# 指定プロジェクトのデータのみをJSONで出力
+node ccconv.js raws --project=ccconv
+
 # 今日更新されたプロジェクト一覧を表示（デフォルト）
 node ccconv.js projects
 
@@ -65,6 +68,9 @@ node ccconv.js projects --json
 # 指定した列のみを出力
 node ccconv.js raws --column=timestamp,type,message.content
 
+# 指定プロジェクトのデータのみを出力
+node ccconv.js raws --project=ccconv
+
 # メッセージタイプでフィルタリング
 node ccconv.js raws --type=user          # ユーザーメッセージのみ（tool_result除外）
 node ccconv.js raws --type=userandtools # ユーザーメッセージ（tool_result含む）
@@ -95,6 +101,7 @@ node ccconv.js raws --type=assistant    # アシスタントメッセージ + to
 
 ### その他のフィルタリング機能
 
+- **プロジェクトフィルタ**: `--project=` で特定のプロジェクトのデータのみを表示
 - **カラムフィルタ**: `--column=` で表示する項目を指定
 - **タイプフィルタ**: `--type=` でメッセージタイプを指定
 - **ネストアクセス**: `message.content[0].text` のような深い階層へのアクセスが可能
