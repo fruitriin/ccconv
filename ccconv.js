@@ -74,7 +74,29 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const projectsDir = path.join(os.homedir(), '.claude', 'projects');
+// -d / --dir= オプション → CLAUDE_CONFIG_DIR 環境変数 → デフォルト (~/.claude) の優先順
+function resolveConfigDir() {
+  const rawArgs = process.argv.slice(2);
+  // -d <path> 形式
+  const dIdx = rawArgs.indexOf('-d');
+  if (dIdx !== -1 && rawArgs[dIdx + 1]) {
+    return rawArgs[dIdx + 1];
+  }
+  // --dir=<path> 形式
+  const dirArg = rawArgs.find(a => a.startsWith('--dir='));
+  if (dirArg) {
+    return dirArg.split('--dir=')[1];
+  }
+  // 環境変数
+  if (process.env.CLAUDE_CONFIG_DIR) {
+    return process.env.CLAUDE_CONFIG_DIR;
+  }
+  // デフォルト
+  return path.join(os.homedir(), '.claude');
+}
+
+const configDir = resolveConfigDir();
+const projectsDir = path.join(configDir, 'projects');
 
 // 今日の日付を取得 (YYYY-MM-DD形式)
 const today = new Date().toISOString().split('T')[0];
@@ -788,6 +810,10 @@ function showUsage() {
   node ccconv.js projects --sort=tokens  トークン数順でソート（tokens/messages/update）
   node ccconv.js tokens            直近4時間のトークン使用量を表示
 
+グローバルオプション:
+  -d <path> / --dir=<path>  Claudeの設定ディレクトリを指定（デフォルト: ~/.claude）
+                            環境変数 CLAUDE_CONFIG_DIR でも指定可能
+
 例:
   node ccconv.js raws --since=2024-08-20 --column=timestamp,message.usage --type=assistant
   node ccconv.js raws --project=ccconv --format=talk --reverse
@@ -796,8 +822,13 @@ function showUsage() {
   node ccconv.js projects --one-line --sort=messages`);
 }
 
-// コマンドライン引数の解析
-const args = process.argv.slice(2);
+// コマンドライン引数の解析（-d / --dir= グローバルオプションを除外）
+const args = process.argv.slice(2).filter((arg, i, arr) => {
+  if (arg === '-d') return false;
+  if (i > 0 && arr[i - 1] === '-d') return false;
+  if (arg.startsWith('--dir=')) return false;
+  return true;
+});
 
 if (args.length === 0) {
   getTodaysFiles();
