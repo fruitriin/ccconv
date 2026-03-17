@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0] - 2026-03-17
+
+### Added
+- `talk` サブコマンド: 会話をリアルタイムに読みやすい形式で出力
+- `--watch` オプション: jsonlファイルの変更を監視し、差分を即座に出力
+- `--session=<id>` オプション: セッションIDで絞り込み
+- `--thinking` オプション: thinkingブロックを表示
+- `--tools` / `--tools=meta` オプション: ツール呼び出しの表示制御
+- `files` サブコマンド: 旧デフォルト（今日のファイル一覧）を退避
+- プロジェクト自動選定: cwd から projectDirName を推定
+
+### Changed
+- **デフォルト動作を `talk` 形式に変更**: 引数なし `ccconv` で今日の会話を talk 形式で出力
+- Node.js → Bun (TypeScript) に完全移行。ccconv.js を削除
+- 複数の configDir を候補として探索（~/.claude, CLAUDE_CONFIG_DIR, ~/.config/claude）
+- セッション重複排除の追加
+
+### Removed
+- ccconv.js（Node.js旧版）を削除。ccconv.ts に完全移行
+
 ## [0.0.2] - 2025-08-23
 
 ### Added

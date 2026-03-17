@@ -4,15 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Claude Code log handling tool (`ccconv.js`) written in Node.js. It reads conversation logs stored in the Claude Code projects directory (`~/.claude/projects/`) and provides various ways to display and handle the data.
+This is a Claude Code log handling tool (`ccconv.ts`) written in TypeScript/Bun. It reads conversation logs stored in the Claude Code projects directory (`~/.claude/projects/`) and provides various ways to display and handle the data.
 
 ## Commands
 
-This project has no package.json, so it runs directly with Node.js:
+Run with Bun:
 
 ```bash
-# Show today's log files and statistics
-node ccconv.js
+# Show today's conversations in talk format (default)
+bun ccconv.ts
 
 # Export today's conversation data as JSON (default behavior)
 node ccconv.js raws
