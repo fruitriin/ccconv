@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import ProjectList from './components/ProjectList.vue'
-import SessionList from './components/SessionList.vue'
+import ProjectTree from './components/ProjectTree.vue'
 import FilterBar from './components/FilterBar.vue'
 import ConversationView from './components/ConversationView.vue'
 import { useConversations } from './composables/useConversations'
@@ -16,8 +15,7 @@ const { state } = useConversations()
         <span class="app-title">ccconv</span>
         <span v-if="state.loading" class="loading-dot">●</span>
       </div>
-      <ProjectList />
-      <SessionList />
+      <ProjectTree />
     </aside>
     <!-- メインエリア -->
     <main class="main">

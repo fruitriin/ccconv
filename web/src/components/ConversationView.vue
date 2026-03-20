@@ -63,25 +63,51 @@ const displayItems = computed<ConvItem[]>(() => {
   const typeFilter = state.typeFilter
   const searchText = state.searchText.toLowerCase()
 
-  // サブエージェントをグループ化
-  const subagentMap = new Map<string, Entry[]>()
+  // サブエージェントをグループ化（agentId → entries）
+  // 各グループの「最初のエントリのタイムスタンプ」を記録して、挿入位置を決める
+  const subagentMap = new Map<string, { entries: Entry[]; firstTimestamp: string }>()
   const mainEntries: Entry[] = []
 
   for (const entry of entries) {
     if (entry._isSubagent && entry._agentId) {
       const id = entry._agentId
-      if (!subagentMap.has(id)) subagentMap.set(id, [])
-      subagentMap.get(id)!.push(entry)
+      if (!subagentMap.has(id)) {
+        subagentMap.set(id, { entries: [], firstTimestamp: entry.timestamp ?? '' })
+      }
+      const group = subagentMap.get(id)!
+      group.entries.push(entry)
+      // 最初のタイムスタンプを更新（より早いものを保持）
+      if (entry.timestamp && entry.timestamp < group.firstTimestamp) {
+        group.firstTimestamp = entry.timestamp
+      }
     } else {
       mainEntries.push(entry)
     }
   }
 
-  const items: ConvItem[] = []
+  // サブエージェントグループを firstTimestamp 順にソート
+  const subagentGroups = [...subagentMap.entries()].sort(
+    ([, a], [, b]) => a.firstTimestamp.localeCompare(b.firstTimestamp)
+  )
 
-  // メインエントリを走査しつつ、サブエージェントを適切な位置に挿入
-  // （サブエージェントは最後にまとめて表示）
+  const items: ConvItem[] = []
+  let subagentIdx = 0
+
   for (const entry of mainEntries) {
+    // サブエージェントグループをこのエントリの前に挿入すべきか確認
+    // （typeFilter が 'all' または 'assistant' の場合のみ）
+    if (typeFilter === 'all' || typeFilter === 'assistant') {
+      while (
+        subagentIdx < subagentGroups.length &&
+        entry.timestamp &&
+        subagentGroups[subagentIdx][1].firstTimestamp < entry.timestamp
+      ) {
+        const [agentId, group] = subagentGroups[subagentIdx]
+        items.push({ type: 'subagent', group: { agentId, entries: group.entries } })
+        subagentIdx++
+      }
+    }
+
     // typeフィルタ
     if (typeFilter === 'user' && entry.type !== 'user') continue
     if (typeFilter === 'assistant' && entry.type !== 'assistant') continue
@@ -96,10 +122,12 @@ const displayItems = computed<ConvItem[]>(() => {
     items.push({ type: 'entry', entry, searchText: text })
   }
 
-  // サブエージェントグループを末尾に追加（ただし会話内容をフィルタしない）
+  // 残ったサブエージェントグループを末尾に追加
   if (typeFilter === 'all' || typeFilter === 'assistant') {
-    for (const [agentId, agentEntries] of subagentMap) {
-      items.push({ type: 'subagent', group: { agentId, entries: agentEntries } })
+    while (subagentIdx < subagentGroups.length) {
+      const [agentId, group] = subagentGroups[subagentIdx]
+      items.push({ type: 'subagent', group: { agentId, entries: group.entries } })
+      subagentIdx++
     }
   }
 
