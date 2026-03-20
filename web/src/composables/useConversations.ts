@@ -83,8 +83,8 @@ const state = reactive({
 async function fetchProjects() {
   state.loading = true
   try {
-    const since = state.sinceFilter === 'today' ? 'today' : state.sinceFilter
-    const res = await fetch(`/api/projects?since=${since}`)
+    const sinceParam = state.sinceFilter === 'today' ? '' : `?since=${state.sinceFilter}`
+    const res = await fetch(`/api/projects${sinceParam}`)
     state.projects = await res.json()
   } catch (e) {
     console.error('fetchProjects failed', e)
