@@ -57,6 +57,7 @@ interface Entry {
   sessionId?: string;
   version?: string;
   gitBranch?: string;
+  agentId?: string;
   type?: string;
   message?: any;
   uuid?: string;
@@ -65,6 +66,9 @@ interface Entry {
   _filePath?: string;
   _projectDir?: string;
   _fileName?: string;
+  _isSubagent?: boolean;
+  _parentSession?: string;
+  _agentId?: string;
 }
 
 function parseArg(args: string[], name: string): string | null {
@@ -104,10 +108,29 @@ function formatTimestamp(ts: string): { dateStr: string; timeStr: string } | nul
 interface DataOptions {
   projectFilter?: string | null;
   sessionFilter?: string | null;
+  subagents?: boolean;
+}
+
+function readJsonlFile(filePath: string, projectDir: string, fileName: string, extraFields: Partial<Entry> = {}): Entry[] {
+  const entries: Entry[] = [];
+  try {
+    const content = readFileSync(filePath, "utf8");
+    for (const line of content.trim().split("\n")) {
+      try {
+        const entry: Entry = JSON.parse(line);
+        entry._filePath = filePath;
+        entry._projectDir = projectDir;
+        entry._fileName = fileName;
+        Object.assign(entry, extraFields);
+        entries.push(entry);
+      } catch {}
+    }
+  } catch {}
+  return entries;
 }
 
 function getAllData(opts: DataOptions = {}): Entry[] {
-  const { projectFilter = null, sessionFilter = null } = opts;
+  const { projectFilter = null, sessionFilter = null, subagents = false } = opts;
   const allData: Entry[] = [];
   const seenSessions = new Set<string>(); // 重複排除用
 
@@ -135,18 +158,27 @@ function getAllData(opts: DataOptions = {}): Entry[] {
           seenSessions.add(file);
 
           const filePath = join(fullProjectPath, file);
-          try {
-            const content = readFileSync(filePath, "utf8");
-            for (const line of content.trim().split("\n")) {
+          allData.push(...readJsonlFile(filePath, projectDir, file));
+
+          // サブエージェントを読む
+          if (subagents) {
+            const sessionId = file.replace(".jsonl", "");
+            const subagentsDir = join(fullProjectPath, sessionId, "subagents");
+            if (existsSync(subagentsDir)) {
               try {
-                const entry: Entry = JSON.parse(line);
-                entry._filePath = filePath;
-                entry._projectDir = projectDir;
-                entry._fileName = file;
-                allData.push(entry);
+                const agentFiles = readdirSync(subagentsDir).filter((f) => f.endsWith(".jsonl"));
+                for (const agentFile of agentFiles) {
+                  const agentId = agentFile.replace(".jsonl", "").replace(/^agent-/, "");
+                  const agentFilePath = join(subagentsDir, agentFile);
+                  allData.push(...readJsonlFile(agentFilePath, projectDir, agentFile, {
+                    _isSubagent: true,
+                    _parentSession: sessionId,
+                    _agentId: agentId,
+                  }));
+                }
               } catch {}
             }
-          } catch {}
+          }
         }
       } catch {}
     }
@@ -189,12 +221,12 @@ interface TalkOptions {
   toolsMeta?: boolean;
 }
 
-function showSingleTalkEntry(entry: Entry, opts: TalkOptions = {}): void {
+function showSingleTalkEntry(entry: Entry, opts: TalkOptions = {}, linePrefix: string = ""): void {
   if (!entry.timestamp) return;
   const fmt = formatTimestamp(entry.timestamp);
   if (!fmt) return;
   const { dateStr, timeStr } = fmt;
-  const prefix = `[${dateStr} ${timeStr}]`;
+  const prefix = `${linePrefix}[${dateStr} ${timeStr}]`;
 
   if (entry.type === "assistant" && entry.message?.content && Array.isArray(entry.message.content)) {
     // thinking
@@ -202,7 +234,7 @@ function showSingleTalkEntry(entry: Entry, opts: TalkOptions = {}): void {
       for (const block of entry.message.content) {
         if (block.type === "thinking" && block.thinking) {
           console.log(`${prefix} Thinking:`);
-          console.log(block.thinking);
+          console.log(block.thinking.split("\n").map((l: string) => `${linePrefix}${l}`).join("\n"));
           console.log("");
         }
       }
@@ -221,7 +253,7 @@ function showSingleTalkEntry(entry: Entry, opts: TalkOptions = {}): void {
       for (const block of entry.message.content) {
         if (block.type === "tool_use") {
           console.log(`${prefix} Tool Use: ${block.name}`);
-          try { console.log(JSON.stringify(block.input, null, 2)); } catch {}
+          try { console.log(JSON.stringify(block.input, null, 2).split("\n").map((l: string) => `${linePrefix}${l}`).join("\n")); } catch {}
           console.log("");
         }
       }
@@ -235,7 +267,7 @@ function showSingleTalkEntry(entry: Entry, opts: TalkOptions = {}): void {
       .trim();
     if (text) {
       console.log(`${prefix} Assistant:`);
-      console.log(text);
+      console.log(text.split("\n").map((l: string) => `${linePrefix}${l}`).join("\n"));
       console.log("");
     }
   } else if (entry.type === "user" && !isToolResult(entry)) {
@@ -251,7 +283,7 @@ function showSingleTalkEntry(entry: Entry, opts: TalkOptions = {}): void {
     }
     if (content.trim()) {
       console.log(`${prefix} User:`);
-      console.log(content.trim());
+      console.log(content.trim().split("\n").map((l: string) => `${linePrefix}${l}`).join("\n"));
       console.log("");
     }
   } else if (entry.type === "user" && isToolResult(entry)) {
@@ -278,10 +310,10 @@ function showSingleTalkEntry(entry: Entry, opts: TalkOptions = {}): void {
       console.log(`${prefix} Tool Result: ${toolName}`);
       const lines = toolContent.trim().split("\n");
       if (lines.length > 5) {
-        console.log(lines.slice(0, 3).join("\n"));
-        console.log(`... (${lines.length - 3} more lines)`);
+        console.log(lines.slice(0, 3).map((l: string) => `${linePrefix}${l}`).join("\n"));
+        console.log(`${linePrefix}... (${lines.length - 3} more lines)`);
       } else {
-        console.log(toolContent.trim());
+        console.log(lines.map((l: string) => `${linePrefix}${l}`).join("\n"));
       }
       console.log("");
     }
@@ -371,6 +403,7 @@ function cmdTalk(cmdArgs: string[]): void {
   const reverse = hasFlag(cmdArgs, "reverse");
   const thinking = hasFlag(cmdArgs, "thinking");
   const watch = hasFlag(cmdArgs, "watch");
+  const showSubagents = hasFlag(cmdArgs, "subagents");
 
   const toolsArg = cmdArgs.find((a) => a === "--tools" || a.startsWith("--tools="));
   const tools = toolsArg === "--tools";
@@ -397,12 +430,53 @@ function cmdTalk(cmdArgs: string[]): void {
     return;
   }
 
-  let data = getAllData({ projectFilter, sessionFilter });
+  let data = getAllData({ projectFilter, sessionFilter, subagents: showSubagents });
   data = applySinceFilter(data, sinceFilter);
   sortByTimestamp(data, reverse);
 
-  for (const entry of data) {
+  if (!showSubagents) {
+    for (const entry of data) {
+      showSingleTalkEntry(entry, talkOpts);
+    }
+    return;
+  }
+
+  // サブエージェントあり: 親エントリとサブエージェントエントリを分けて、
+  // 親セッションの会話の後にそのサブエージェントを表示する
+  const parentEntries = data.filter((e) => !e._isSubagent);
+  const subagentEntries = data.filter((e) => e._isSubagent);
+
+  // 親エントリを表示し、セッション境界でサブエージェントを差し込む
+  const seenSessionsForSub = new Set<string>();
+  for (const entry of parentEntries) {
     showSingleTalkEntry(entry, talkOpts);
+
+    // このエントリの sessionId に紐づくサブエージェントがあれば、セッション末尾で表示
+    const sid = entry.sessionId;
+    if (sid && !seenSessionsForSub.has(sid)) {
+      // 同じセッションの次エントリが別セッションかチェック
+      const idx = parentEntries.indexOf(entry);
+      const nextEntry = parentEntries[idx + 1];
+      if (!nextEntry || nextEntry.sessionId !== sid) {
+        // このセッションの全サブエージェントを表示
+        const sessionSubs = subagentEntries.filter((e) => e._parentSession === sid);
+        const subAgentIds = [...new Set(sessionSubs.map((e) => e._agentId))];
+        for (const agentId of subAgentIds) {
+          const agentEntries = sessionSubs.filter((e) => e._agentId === agentId);
+          // モデル名を取得（assistantエントリのmessage.modelから）
+          const modelEntry = agentEntries.find((e) => e.type === "assistant" && e.message?.model);
+          const modelName = modelEntry?.message?.model || "";
+          const headerModel = modelName ? ` (${modelName})` : "";
+          console.log(`  ┏━ subagent: ${agentId}${headerModel}`);
+          for (const subEntry of agentEntries) {
+            showSingleTalkEntry(subEntry, talkOpts, "  ┃ ");
+          }
+          console.log(`  ┗━ end subagent`);
+          console.log("");
+        }
+        seenSessionsForSub.add(sid);
+      }
+    }
   }
 }
 
@@ -538,6 +612,7 @@ function cmdProjects(cmdArgs: string[]): void {
       let totalMessages = 0, totalInput = 0, totalOutput = 0;
       let latestUpdate = new Date(0), earliestSession = new Date();
       let latestCwd = "", latestBranch = "";
+      let subagentCount = 0;
 
       for (const file of files) {
         const filePath = join(fp, file);
@@ -569,6 +644,16 @@ function cmdProjects(cmdArgs: string[]): void {
             } catch {}
           }
         } catch {}
+
+        // サブエージェント数をカウント
+        const sessionId = file.replace(".jsonl", "");
+        const subagentsDir = join(fp, sessionId, "subagents");
+        if (existsSync(subagentsDir)) {
+          try {
+            const agentFiles = readdirSync(subagentsDir).filter((f) => f.endsWith(".jsonl"));
+            subagentCount += agentFiles.length;
+          } catch {}
+        }
       }
 
       if (totalMessages > 0) {
@@ -584,6 +669,7 @@ function cmdProjects(cmdArgs: string[]): void {
           gitBranch: latestBranch,
           sessionStart: earliestSession,
           sessionEnd: latestUpdate,
+          subagentCount,
         });
       }
     } catch {}
@@ -612,7 +698,8 @@ function cmdProjects(cmdArgs: string[]): void {
         : `${startDate} ${startTime}~${endDate} ${endTime}`;
       const lastDate = s.lastUpdate.toISOString().split("T")[0].replace(/-/g, "/");
       const lastTime = s.lastUpdate.toISOString().split("T")[1].substring(0, 5);
-      console.log(`${shortName} 💬${s.totalMessages.toLocaleString()} ⏱️${period} 📅${lastDate} ${lastTime}`);
+      const subagentPart = s.subagentCount > 0 ? ` 🤖${s.subagentCount}` : "";
+      console.log(`${shortName} 💬${s.totalMessages.toLocaleString()} ⏱️${period} 📅${lastDate} ${lastTime}${subagentPart}`);
     }
     return;
   }
@@ -628,6 +715,7 @@ function cmdProjects(cmdArgs: string[]): void {
     console.log(`   📅 最新更新: ${s.lastUpdate.toLocaleString("ja-JP")}`);
     console.log(`   💬 総メッセージ数: ${s.totalMessages.toLocaleString()}件`);
     console.log(`   🎯 総トークン: 入力=${s.inputTokens.toLocaleString()}, 出力=${s.outputTokens.toLocaleString()}`);
+    if (s.subagentCount > 0) console.log(`   🤖 サブエージェント: ${s.subagentCount}回`);
     if (s.cwd) console.log(`   📂 作業ディレクトリ: ${s.cwd}`);
     if (s.gitBranch) console.log(`   🌿 Gitブランチ: ${s.gitBranch}`);
     const sd = s.sessionStart.toISOString().split("T")[0];
@@ -636,6 +724,121 @@ function cmdProjects(cmdArgs: string[]): void {
     console.log("");
   }
   console.log(`合計: ${totalAll}プロジェクト, ${totalMsgs.toLocaleString()}メッセージ, ${totalToks.toLocaleString()}トークン`);
+}
+
+// ── subagents サブコマンド ────────────────────────────────────────────
+
+function cmdSubagents(rawArgs: string[]): void {
+  let sinceFilter: string | null = null;
+  let projectFilter: string | null = null;
+  let sessionFilter: string | null = null;
+
+  for (const a of rawArgs) {
+    if (a.startsWith("--since=")) sinceFilter = a.split("=")[1];
+    else if (a.startsWith("--project=")) projectFilter = a.split("=")[1];
+    else if (a.startsWith("--session=")) sessionFilter = a.split("=")[1];
+  }
+
+  const seenProjects = new Set<string>();
+
+  for (const projectsDir of projectsDirs) {
+    if (!existsSync(projectsDir)) continue;
+    const projectDirs = readdirSync(projectsDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+
+    for (const projectDir of projectDirs) {
+      if (projectFilter && !projectDir.includes(projectFilter)) continue;
+      if (seenProjects.has(projectDir)) continue;
+      seenProjects.add(projectDir);
+
+      const fp = join(projectsDir, projectDir);
+      const sessionDirs = readdirSync(fp, { withFileTypes: true })
+        .filter((d) => d.isDirectory() && /^[0-9a-f]{8}-/.test(d.name));
+
+      let projectHasAgents = false;
+
+      for (const sd of sessionDirs) {
+        if (sessionFilter && !sd.name.startsWith(sessionFilter)) continue;
+
+        const subagentsDir = join(fp, sd.name, "subagents");
+        if (!existsSync(subagentsDir)) continue;
+
+        const agentFiles = readdirSync(subagentsDir).filter((f) => f.endsWith(".jsonl"));
+        if (agentFiles.length === 0) continue;
+
+        // sinceFilter チェック
+        if (sinceFilter && sinceFilter !== "all") {
+          const sinceDate = new Date(sinceFilter);
+          const sessionJsonl = join(fp, sd.name + ".jsonl");
+          if (existsSync(sessionJsonl)) {
+            const stats = statSync(sessionJsonl);
+            if (new Date(stats.mtime.toISOString().split("T")[0]) < sinceDate) continue;
+          }
+        } else if (!sinceFilter) {
+          // デフォルト: 今日のみ
+          const sessionJsonl = join(fp, sd.name + ".jsonl");
+          if (existsSync(sessionJsonl)) {
+            const stats = statSync(sessionJsonl);
+            if (stats.mtime.toISOString().split("T")[0] !== today) continue;
+          }
+        }
+
+        if (!projectHasAgents) {
+          console.log(`📁 ${projectDir}`);
+          projectHasAgents = true;
+        }
+
+        console.log(`  📋 session: ${sd.name.substring(0, 8)}...`);
+
+        for (const af of agentFiles) {
+          const agentId = af.replace("agent-", "").replace(".jsonl", "");
+          const metaPath = join(subagentsDir, af.replace(".jsonl", ".meta.json"));
+
+          let model = "";
+          let firstMsg = "";
+          let msgCount = 0;
+          let timestamp = "";
+
+          // meta.json からモデル名取得
+          if (existsSync(metaPath)) {
+            try {
+              const meta = JSON.parse(readFileSync(metaPath, "utf8"));
+              model = meta.model || "";
+            } catch {}
+          }
+
+          // JSONL から最初のユーザーメッセージとメッセージ数を取得
+          try {
+            const lines = readFileSync(join(subagentsDir, af), "utf8").trim().split("\n");
+            msgCount = lines.length;
+            for (const line of lines) {
+              try {
+                const e = JSON.parse(line);
+                if (!timestamp && e.timestamp) timestamp = e.timestamp;
+                if (!firstMsg && e.type === "user" && e.message?.content) {
+                  const content = typeof e.message.content === "string"
+                    ? e.message.content
+                    : Array.isArray(e.message.content)
+                      ? e.message.content.map((c: any) => c.text || "").join("")
+                      : "";
+                  firstMsg = content.replace(/\n/g, " ").substring(0, 80);
+                  if (content.length > 80) firstMsg += "...";
+                }
+              } catch {}
+            }
+          } catch {}
+
+          const modelTag = model ? ` (${model.replace("claude-", "")})` : "";
+          const time = timestamp ? timestamp.split("T")[1]?.substring(0, 5) || "" : "";
+          console.log(`    🤖 ${agentId.substring(0, 12)}${modelTag} 💬${msgCount} ${time}`);
+          if (firstMsg) console.log(`       ${firstMsg}`);
+        }
+      }
+
+      if (projectHasAgents) console.log("");
+    }
+  }
 }
 
 // ── tokens サブコマンド ───────────────────────────────────────────────
@@ -729,6 +932,7 @@ function showUsage(): void {
   ccconv talk --tools=meta             ツール名+入力キーだけ表示
   ccconv talk --since=all              全期間
   ccconv talk --reverse                逆順
+  ccconv talk --subagents              サブエージェントの会話も表示
 
   ccconv raws                          今日のデータをJSONで出力
   ccconv raws --since=all              全データ
@@ -740,11 +944,16 @@ function showUsage(): void {
   ccconv raws --type=user              タイプフィルタ
   ccconv raws --reverse                逆順
 
-  ccconv projects                      今日更新のプロジェクト
+  ccconv projects                      今日更新のプロジェクト（サブエージェント統計含む）
   ccconv projects --since=all          全プロジェクト
   ccconv projects --json               JSON出力
   ccconv projects --one-line           1行形式
   ccconv projects --sort=tokens        ソート
+
+  ccconv subagents                     今日のサブエージェント一覧
+  ccconv subagents --since=all         全期間
+  ccconv subagents --project=<name>    プロジェクト指定
+  ccconv subagents --session=<id>      セッション指定
 
   ccconv tokens                        直近4時間のトークン使用量
   ccconv files                         今日のファイル一覧（旧デフォルト）
@@ -763,6 +972,8 @@ if (!cmd || cmd === "talk") {
   cmdRaws(args.slice(1));
 } else if (cmd === "projects") {
   cmdProjects(args.slice(1));
+} else if (cmd === "subagents") {
+  cmdSubagents(args.slice(1));
 } else if (cmd === "tokens") {
   cmdTokens();
 } else if (cmd === "files") {
