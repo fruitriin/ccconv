@@ -1,0 +1,85 @@
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --surface2: #0f3460;
+  --text: #e0e0e0;
+  --text-dim: #888;
+  --accent: #e94560;
+  --user-bg: #1a3a5c;
+  --assistant-bg: #2a2a3e;
+  --subagent-border: #e94560;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* スクロールバー */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* ボタン共通 */
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+/* セレクト共通 */
+select {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+select:focus {
+  outline: 1px solid var(--accent);
+}
+
+input[type="text"] {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+input[type="text"]:focus {
+  outline: 1px solid var(--accent);
+}
+input[type="text"]::placeholder {
+  color: var(--text-dim);
+}

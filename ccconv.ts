@@ -14,30 +14,18 @@
 
 import { readFileSync, readdirSync, statSync, existsSync, watchFile, unwatchFile, openSync, readSync, closeSync } from "fs";
 import { join } from "path";
-import { homedir } from "os";
-
-// ── 設定解決 ────────────────────────────────────────────────────────────
-
-function resolveConfigDirs(rawArgs: string[]): string[] {
-  const dIdx = rawArgs.indexOf("-d");
-  if (dIdx !== -1 && rawArgs[dIdx + 1]) return [rawArgs[dIdx + 1]];
-  const dirArg = rawArgs.find((a) => a.startsWith("--dir="));
-  if (dirArg) return [dirArg.split("--dir=")[1]];
-
-  // ~/.claude と CLAUDE_CONFIG_DIR の両方を候補にする（重複排除）
-  const dirs = new Set<string>();
-  dirs.add(join(homedir(), ".claude"));
-  if (process.env.CLAUDE_CONFIG_DIR) dirs.add(process.env.CLAUDE_CONFIG_DIR);
-  // ~/.config/claude も候補に追加（Claude Code のバージョンによって異なる）
-  const xdgConfig = join(homedir(), ".config", "claude");
-  if (existsSync(join(xdgConfig, "projects"))) dirs.add(xdgConfig);
-  return [...dirs];
-}
+import {
+  projectsDirs,
+  today,
+  getAllData,
+  applySinceFilter,
+  getProjects,
+  getSubagents,
+  getTokenStats,
+  type Entry,
+} from "./src/data";
 
 const rawArgs = process.argv.slice(2);
-const configDirs = resolveConfigDirs(rawArgs);
-const projectsDirs = configDirs.map((d) => join(d, "projects"));
-const today = new Date().toISOString().split("T")[0];
 
 // グローバルオプション (-d / --dir=) を除外した引数
 const args = rawArgs.filter((arg, i, arr) => {
@@ -48,28 +36,6 @@ const args = rawArgs.filter((arg, i, arr) => {
 });
 
 // ── ユーティリティ ─────────────────────────────────────────────────────
-
-interface Entry {
-  parentUuid?: string;
-  isSidechain?: boolean;
-  userType?: string;
-  cwd?: string;
-  sessionId?: string;
-  version?: string;
-  gitBranch?: string;
-  agentId?: string;
-  type?: string;
-  message?: any;
-  uuid?: string;
-  timestamp?: string;
-  requestId?: string;
-  _filePath?: string;
-  _projectDir?: string;
-  _fileName?: string;
-  _isSubagent?: boolean;
-  _parentSession?: string;
-  _agentId?: string;
-}
 
 function parseArg(args: string[], name: string): string | null {
   const arg = args.find((a) => a.startsWith(`--${name}=`));
@@ -101,108 +67,6 @@ function formatTimestamp(ts: string): { dateStr: string; timeStr: string } | nul
     dateStr: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
     timeStr: `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`,
   };
-}
-
-// ── データ取得 ─────────────────────────────────────────────────────────
-
-interface DataOptions {
-  projectFilter?: string | null;
-  sessionFilter?: string | null;
-  subagents?: boolean;
-}
-
-function readJsonlFile(filePath: string, projectDir: string, fileName: string, extraFields: Partial<Entry> = {}): Entry[] {
-  const entries: Entry[] = [];
-  try {
-    const content = readFileSync(filePath, "utf8");
-    for (const line of content.trim().split("\n")) {
-      try {
-        const entry: Entry = JSON.parse(line);
-        entry._filePath = filePath;
-        entry._projectDir = projectDir;
-        entry._fileName = fileName;
-        Object.assign(entry, extraFields);
-        entries.push(entry);
-      } catch {}
-    }
-  } catch {}
-  return entries;
-}
-
-function getAllData(opts: DataOptions = {}): Entry[] {
-  const { projectFilter = null, sessionFilter = null, subagents = false } = opts;
-  const allData: Entry[] = [];
-  const seenSessions = new Set<string>(); // 重複排除用
-
-  for (const projectsDir of projectsDirs) {
-    if (!existsSync(projectsDir)) continue;
-
-    const projectDirs = readdirSync(projectsDir, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
-      .map((d) => d.name);
-
-    for (const projectDir of projectDirs) {
-      if (projectFilter && projectDir !== projectFilter) continue;
-
-      const fullProjectPath = join(projectsDir, projectDir);
-      try {
-        let files = readdirSync(fullProjectPath).filter((f) => f.endsWith(".jsonl"));
-
-        if (sessionFilter) {
-          files = files.filter((f) => f.replace(".jsonl", "").startsWith(sessionFilter));
-        }
-
-        for (const file of files) {
-          // 同じセッションIDが複数のconfigDirに存在する場合は最初のものだけ読む
-          if (seenSessions.has(file)) continue;
-          seenSessions.add(file);
-
-          const filePath = join(fullProjectPath, file);
-          allData.push(...readJsonlFile(filePath, projectDir, file));
-
-          // サブエージェントを読む
-          if (subagents) {
-            const sessionId = file.replace(".jsonl", "");
-            const subagentsDir = join(fullProjectPath, sessionId, "subagents");
-            if (existsSync(subagentsDir)) {
-              try {
-                const agentFiles = readdirSync(subagentsDir).filter((f) => f.endsWith(".jsonl"));
-                for (const agentFile of agentFiles) {
-                  const agentId = agentFile.replace(".jsonl", "").replace(/^agent-/, "");
-                  const agentFilePath = join(subagentsDir, agentFile);
-                  allData.push(...readJsonlFile(agentFilePath, projectDir, agentFile, {
-                    _isSubagent: true,
-                    _parentSession: sessionId,
-                    _agentId: agentId,
-                  }));
-                }
-              } catch {}
-            }
-          }
-        }
-      } catch {}
-    }
-  }
-
-  return allData;
-}
-
-function applySinceFilter(data: Entry[], sinceFilter: string | null): Entry[] {
-  if (sinceFilter === "all") return data;
-  let sinceDate: Date;
-  if (sinceFilter === null) {
-    sinceDate = new Date(today);
-  } else {
-    sinceDate = new Date(sinceFilter);
-    if (isNaN(sinceDate.getTime())) {
-      console.log(`⚠️ 無効な日付形式: ${sinceFilter}`);
-      return [];
-    }
-  }
-  return data.filter((e) => {
-    if (!e.timestamp) return false;
-    return new Date(e.timestamp) >= sinceDate;
-  });
 }
 
 function sortByTimestamp(data: Entry[], reverse: boolean): Entry[] {
@@ -585,101 +449,7 @@ function cmdProjects(cmdArgs: string[]): void {
   const oneLineOutput = hasFlag(cmdArgs, "one-line");
   const sortBy = parseArg(cmdArgs, "sort");
 
-  // 全configDirからプロジェクトを収集
-  const allProjectDirs: { name: string; path: string }[] = [];
-  const seenProjects = new Set<string>();
-  for (const projectsDir of projectsDirs) {
-    if (!existsSync(projectsDir)) continue;
-    for (const d of readdirSync(projectsDir, { withFileTypes: true })) {
-      if (!d.isDirectory() || seenProjects.has(d.name)) continue;
-      seenProjects.add(d.name);
-      allProjectDirs.push({ name: d.name, path: join(projectsDir, d.name) });
-    }
-  }
-
-  if (allProjectDirs.length === 0) {
-    console.log("projects ディレクトリが見つかりません");
-    return;
-  }
-
-  const summaries: any[] = [];
-
-  for (const { name: projectDir, path: fp } of allProjectDirs) {
-    try {
-      const files = readdirSync(fp).filter((f) => f.endsWith(".jsonl"));
-      if (files.length === 0) continue;
-
-      let totalMessages = 0, totalInput = 0, totalOutput = 0;
-      let latestUpdate = new Date(0), earliestSession = new Date();
-      let latestCwd = "", latestBranch = "";
-      let subagentCount = 0;
-
-      for (const file of files) {
-        const filePath = join(fp, file);
-        const stats = statSync(filePath);
-
-        if (sinceFilter !== "all") {
-          const sinceDate = sinceFilter ? new Date(sinceFilter) : new Date(today);
-          if (isNaN(sinceDate.getTime())) continue;
-          const fileDate = new Date(stats.mtime.toISOString().split("T")[0]);
-          if (fileDate < sinceDate) continue;
-        }
-
-        if (stats.mtime > latestUpdate) latestUpdate = stats.mtime;
-
-        try {
-          const lines = readFileSync(filePath, "utf8").trim().split("\n");
-          totalMessages += lines.length;
-          for (const line of lines) {
-            try {
-              const e = JSON.parse(line);
-              const d = new Date(e.timestamp);
-              if (d < earliestSession) earliestSession = d;
-              if (e.cwd) latestCwd = e.cwd;
-              if (e.gitBranch) latestBranch = e.gitBranch;
-              if (e.message?.usage) {
-                totalInput += e.message.usage.input_tokens || 0;
-                totalOutput += e.message.usage.output_tokens || 0;
-              }
-            } catch {}
-          }
-        } catch {}
-
-        // サブエージェント数をカウント
-        const sessionId = file.replace(".jsonl", "");
-        const subagentsDir = join(fp, sessionId, "subagents");
-        if (existsSync(subagentsDir)) {
-          try {
-            const agentFiles = readdirSync(subagentsDir).filter((f) => f.endsWith(".jsonl"));
-            subagentCount += agentFiles.length;
-          } catch {}
-        }
-      }
-
-      if (totalMessages > 0) {
-        summaries.push({
-          name: projectDir,
-          fileCount: files.length,
-          lastUpdate: latestUpdate,
-          totalMessages,
-          inputTokens: totalInput,
-          outputTokens: totalOutput,
-          totalTokens: totalInput + totalOutput,
-          cwd: latestCwd,
-          gitBranch: latestBranch,
-          sessionStart: earliestSession,
-          sessionEnd: latestUpdate,
-          subagentCount,
-        });
-      }
-    } catch {}
-  }
-
-  // sort
-  if (sortBy === "tokens") summaries.sort((a, b) => b.totalTokens - a.totalTokens);
-  else if (sortBy === "messages") summaries.sort((a, b) => b.totalMessages - a.totalMessages);
-  else if (sortBy === "update") summaries.sort((a, b) => +b.lastUpdate - +a.lastUpdate);
-  else summaries.sort((a, b) => a.name.localeCompare(b.name));
+  const summaries = getProjects({ sinceFilter, sortBy });
 
   if (jsonOutput) { console.log(JSON.stringify(summaries, null, 2)); return; }
   if (summaries.length === 0) { console.log("プロジェクトが見つかりません"); return; }
@@ -728,142 +498,53 @@ function cmdProjects(cmdArgs: string[]): void {
 
 // ── subagents サブコマンド ────────────────────────────────────────────
 
-function cmdSubagents(rawArgs: string[]): void {
+function cmdSubagents(cmdArgs: string[]): void {
   let sinceFilter: string | null = null;
   let projectFilter: string | null = null;
   let sessionFilter: string | null = null;
 
-  for (const a of rawArgs) {
+  for (const a of cmdArgs) {
     if (a.startsWith("--since=")) sinceFilter = a.split("=")[1];
     else if (a.startsWith("--project=")) projectFilter = a.split("=")[1];
     else if (a.startsWith("--session=")) sessionFilter = a.split("=")[1];
   }
 
-  const seenProjects = new Set<string>();
+  const agents = getSubagents({ sinceFilter, projectFilter, sessionFilter });
 
-  for (const projectsDir of projectsDirs) {
-    if (!existsSync(projectsDir)) continue;
-    const projectDirs = readdirSync(projectsDir, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
-      .map((d) => d.name);
+  // プロジェクト → セッション → エージェント の順でグループ表示
+  const byProject = new Map<string, Map<string, typeof agents>>();
+  for (const agent of agents) {
+    if (!byProject.has(agent.projectDir)) byProject.set(agent.projectDir, new Map());
+    const bySession = byProject.get(agent.projectDir)!;
+    if (!bySession.has(agent.sessionId)) bySession.set(agent.sessionId, []);
+    bySession.get(agent.sessionId)!.push(agent);
+  }
 
-    for (const projectDir of projectDirs) {
-      if (projectFilter && !projectDir.includes(projectFilter)) continue;
-      if (seenProjects.has(projectDir)) continue;
-      seenProjects.add(projectDir);
-
-      const fp = join(projectsDir, projectDir);
-      const sessionDirs = readdirSync(fp, { withFileTypes: true })
-        .filter((d) => d.isDirectory() && /^[0-9a-f]{8}-/.test(d.name));
-
-      let projectHasAgents = false;
-
-      for (const sd of sessionDirs) {
-        if (sessionFilter && !sd.name.startsWith(sessionFilter)) continue;
-
-        const subagentsDir = join(fp, sd.name, "subagents");
-        if (!existsSync(subagentsDir)) continue;
-
-        const agentFiles = readdirSync(subagentsDir).filter((f) => f.endsWith(".jsonl"));
-        if (agentFiles.length === 0) continue;
-
-        // sinceFilter チェック
-        if (sinceFilter && sinceFilter !== "all") {
-          const sinceDate = new Date(sinceFilter);
-          const sessionJsonl = join(fp, sd.name + ".jsonl");
-          if (existsSync(sessionJsonl)) {
-            const stats = statSync(sessionJsonl);
-            if (new Date(stats.mtime.toISOString().split("T")[0]) < sinceDate) continue;
-          }
-        } else if (!sinceFilter) {
-          // デフォルト: 今日のみ
-          const sessionJsonl = join(fp, sd.name + ".jsonl");
-          if (existsSync(sessionJsonl)) {
-            const stats = statSync(sessionJsonl);
-            if (stats.mtime.toISOString().split("T")[0] !== today) continue;
-          }
-        }
-
-        if (!projectHasAgents) {
-          console.log(`📁 ${projectDir}`);
-          projectHasAgents = true;
-        }
-
-        console.log(`  📋 session: ${sd.name.substring(0, 8)}...`);
-
-        for (const af of agentFiles) {
-          const agentId = af.replace("agent-", "").replace(".jsonl", "");
-          const metaPath = join(subagentsDir, af.replace(".jsonl", ".meta.json"));
-
-          let model = "";
-          let firstMsg = "";
-          let msgCount = 0;
-          let timestamp = "";
-
-          // meta.json からモデル名取得
-          if (existsSync(metaPath)) {
-            try {
-              const meta = JSON.parse(readFileSync(metaPath, "utf8"));
-              model = meta.model || "";
-            } catch {}
-          }
-
-          // JSONL から最初のユーザーメッセージとメッセージ数を取得
-          try {
-            const lines = readFileSync(join(subagentsDir, af), "utf8").trim().split("\n");
-            msgCount = lines.length;
-            for (const line of lines) {
-              try {
-                const e = JSON.parse(line);
-                if (!timestamp && e.timestamp) timestamp = e.timestamp;
-                if (!firstMsg && e.type === "user" && e.message?.content) {
-                  const content = typeof e.message.content === "string"
-                    ? e.message.content
-                    : Array.isArray(e.message.content)
-                      ? e.message.content.map((c: any) => c.text || "").join("")
-                      : "";
-                  firstMsg = content.replace(/\n/g, " ").substring(0, 80);
-                  if (content.length > 80) firstMsg += "...";
-                }
-              } catch {}
-            }
-          } catch {}
-
-          const modelTag = model ? ` (${model.replace("claude-", "")})` : "";
-          const time = timestamp ? timestamp.split("T")[1]?.substring(0, 5) || "" : "";
-          console.log(`    🤖 ${agentId.substring(0, 12)}${modelTag} 💬${msgCount} ${time}`);
-          if (firstMsg) console.log(`       ${firstMsg}`);
-        }
+  for (const [projectDir, bySession] of byProject) {
+    console.log(`📁 ${projectDir}`);
+    for (const [sessionId, sessionAgents] of bySession) {
+      console.log(`  📋 session: ${sessionId.substring(0, 8)}...`);
+      for (const agent of sessionAgents) {
+        const modelTag = agent.model ? ` (${agent.model.replace("claude-", "")})` : "";
+        const time = agent.timestamp ? agent.timestamp.split("T")[1]?.substring(0, 5) || "" : "";
+        console.log(`    🤖 ${agent.agentId.substring(0, 12)}${modelTag} 💬${agent.msgCount} ${time}`);
+        if (agent.firstMsg) console.log(`       ${agent.firstMsg}`);
       }
-
-      if (projectHasAgents) console.log("");
     }
+    console.log("");
   }
 }
 
 // ── tokens サブコマンド ───────────────────────────────────────────────
 
 function cmdTokens(): void {
-  const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
-  const data = getAllData();
-  const recent = data.filter((e) => e.timestamp && new Date(e.timestamp) >= fourHoursAgo);
-
-  let inp = 0, out = 0, cacheCreate = 0, cacheRead = 0;
-  for (const e of recent) {
-    if (e.message?.usage) {
-      inp += e.message.usage.input_tokens || 0;
-      out += e.message.usage.output_tokens || 0;
-      cacheCreate += e.message.usage.cache_creation_input_tokens || 0;
-      cacheRead += e.message.usage.cache_read_input_tokens || 0;
-    }
-  }
-
+  const stats = getTokenStats();
   console.log(`直近4時間のトークン使用量:`);
-  console.log(`  入力トークン: ${inp.toLocaleString()}`);
-  console.log(`  出力トークン: ${out.toLocaleString()}`);
-  console.log(`  キャッシュ作成: ${cacheCreate.toLocaleString()}`);
-  console.log(`  キャッシュ読み取り: ${cacheRead.toLocaleString()}`);
-  console.log(`  セッション数: ${recent.length}`);
+  console.log(`  入力トークン: ${stats.inputTokens.toLocaleString()}`);
+  console.log(`  出力トークン: ${stats.outputTokens.toLocaleString()}`);
+  console.log(`  キャッシュ作成: ${stats.cacheCreationTokens.toLocaleString()}`);
+  console.log(`  キャッシュ読み取り: ${stats.cacheReadTokens.toLocaleString()}`);
+  console.log(`  セッション数: ${stats.sessionCount}`);
 }
 
 // ── files サブコマンド（旧デフォルト） ────────────────────────────────
@@ -957,6 +638,7 @@ function showUsage(): void {
 
   ccconv tokens                        直近4時間のトークン使用量
   ccconv files                         今日のファイル一覧（旧デフォルト）
+  ccconv web                           REST APIサーバーを起動（デフォルトポート: 13100）
 
 グローバルオプション:
   -d <path> / --dir=<path>  Claudeの設定ディレクトリを指定`);
@@ -978,6 +660,8 @@ if (!cmd || cmd === "talk") {
   cmdTokens();
 } else if (cmd === "files") {
   cmdFiles();
+} else if (cmd === "web") {
+  await import("./src/server");
 } else {
   showUsage();
 }
