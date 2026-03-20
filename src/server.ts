@@ -120,7 +120,12 @@ const server = Bun.serve({
         subagents: includeSubagents,
       });
 
-      data = applySinceFilter(data, sinceFilter);
+      // セッション指定時は since フィルタを無視（指定セッションの全データを返す）
+      if (!sessionFilter) {
+        data = applySinceFilter(data, sinceFilter);
+      } else if (sinceFilter) {
+        data = applySinceFilter(data, sinceFilter);
+      }
 
       // typeフィルタ
       if (typeFilter === "user") {
