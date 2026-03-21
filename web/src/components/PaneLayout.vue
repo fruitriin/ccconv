@@ -260,12 +260,14 @@ function paneGridClass(count: number): string {
       <div
         v-else-if="seg.type === 'parallel'"
         :class="paneGridClass(seg.groups.length)"
-        class="min-h-60"
+        class=""
+        :style="flowMode ? {} : { minHeight: '15rem' }"
       >
         <div
           v-for="pane in seg.groups"
           :key="pane.agentId"
-          class="flex-1 border border-subagent-border rounded-md flex flex-col overflow-hidden min-w-0"
+          class="border border-subagent-border rounded-md flex flex-col min-w-0"
+          :class="flowMode ? '' : 'flex-1 overflow-hidden'"
         >
           <!-- ペインヘッダー -->
           <div class="px-2 py-1.5 bg-[rgba(233,69,96,0.1)] text-xs text-accent font-semibold flex items-center gap-1.5 flex-shrink-0">
