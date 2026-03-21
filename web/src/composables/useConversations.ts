@@ -90,6 +90,7 @@ const state = reactive({
   sinceFilter: 'today' as string,
   searchText: '' as string,
   anchorUuid: null as string | null,
+  viewMode: 'linear' as 'linear' | 'pane',
   filters: {
     user: true,
     assistant: true,

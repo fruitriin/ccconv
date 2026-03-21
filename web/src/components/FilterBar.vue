@@ -81,6 +81,27 @@ const triButtons: Array<{ key: 'tools' | 'thinking' | 'subagents'; icon: string;
         </button>
       </div>
     </div>
+    <div class="flex items-center gap-1.5">
+      <label class="text-text-dim text-xs whitespace-nowrap">表示モード</label>
+      <div class="flex gap-1">
+        <button
+          @click="state.viewMode = 'linear'"
+          class="px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer border-none"
+          :class="state.viewMode === 'linear' ? 'bg-accent text-white' : 'bg-surface2 text-text-dim'"
+          title="リニア表示"
+        >
+          📋 リニア
+        </button>
+        <button
+          @click="state.viewMode = 'pane'"
+          class="px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer border-none"
+          :class="state.viewMode === 'pane' ? 'bg-accent text-white' : 'bg-surface2 text-text-dim'"
+          title="ペイン分割表示"
+        >
+          🪟 ペイン
+        </button>
+      </div>
+    </div>
     <div class="flex items-center gap-1.5 flex-1">
       <input
         v-model="state.searchText"

@@ -5,6 +5,7 @@ import type { Entry } from '../composables/useConversations'
 import { getTextContent } from '../composables/useMessageUtils'
 import SubagentTree from './SubagentTree.vue'
 import MessageBubble from './MessageBubble.vue'
+import PaneLayout from './PaneLayout.vue'
 
 const { state, filteredConversations } = useConversations()
 
@@ -152,34 +153,48 @@ const displayItems = computed<ConvItem[]>(() => {
 </script>
 
 <template>
-  <div ref="containerRef" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2.5">
-    <div v-if="!state.selectedSession && !state.loading" class="text-text-dim text-center mt-10 text-sm opacity-50">
+  <!-- 状態表示（セッション未選択 / 空） -->
+  <div v-if="!state.selectedSession && !state.loading" class="flex-1 flex items-center justify-center">
+    <div class="text-text-dim text-center text-sm opacity-50">
       プロジェクトを選択してください
     </div>
-    <div v-else-if="displayItems.length === 0" class="text-text-dim text-center mt-10 text-sm">
+  </div>
+  <div v-else-if="displayItems.length === 0" class="flex-1 flex items-center justify-center">
+    <div class="text-text-dim text-center text-sm">
       表示するメッセージがありません
     </div>
-    <template v-else>
-      <template v-for="(item, idx) in displayItems" :key="idx">
-        <div
-          :data-uuid="getItemUuid(item)"
-          @click="setAnchor(getItemUuid(item))"
-          :class="state.anchorUuid === getItemUuid(item) ? 'ring-1 ring-accent rounded-lg' : ''"
-        >
-          <MessageBubble
-            v-if="item.type === 'entry' && item.entry"
-            :entry="item.entry"
-            :search-text="state.searchText"
-            :idx="idx"
-          />
-          <SubagentTree
-            v-else-if="item.type === 'subagent' && item.group"
-            :entries="item.group.entries"
-            :agent-id="item.group.agentId"
-            :default-expanded="state.filters.subagents === 'expanded'"
-          />
-        </div>
-      </template>
+  </div>
+
+  <!-- ペインモード -->
+  <PaneLayout
+    v-else-if="state.viewMode === 'pane'"
+    :display-items="displayItems"
+    :search-text="state.searchText"
+    :anchor-uuid="state.anchorUuid"
+    @set-anchor="setAnchor"
+  />
+
+  <!-- リニアモード（既存） -->
+  <div v-else ref="containerRef" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2.5">
+    <template v-for="(item, idx) in displayItems" :key="idx">
+      <div
+        :data-uuid="getItemUuid(item)"
+        @click="setAnchor(getItemUuid(item))"
+        :class="state.anchorUuid === getItemUuid(item) ? 'ring-1 ring-accent rounded-lg' : ''"
+      >
+        <MessageBubble
+          v-if="item.type === 'entry' && item.entry"
+          :entry="item.entry"
+          :search-text="state.searchText"
+          :idx="idx"
+        />
+        <SubagentTree
+          v-else-if="item.type === 'subagent' && item.group"
+          :entries="item.group.entries"
+          :agent-id="item.group.agentId"
+          :default-expanded="state.filters.subagents === 'expanded'"
+        />
+      </div>
     </template>
   </div>
 </template>
