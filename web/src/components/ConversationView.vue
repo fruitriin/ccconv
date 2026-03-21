@@ -156,8 +156,9 @@ const displayItems = computed<ConvItem[]>(() => {
     <div v-if="!state.selectedSession" class="text-text-dim text-center mt-10 text-sm">
       セッションを選択してください
     </div>
-    <div v-else-if="state.loading && state.conversations.length === 0" class="text-text-dim text-center mt-10 text-sm">
-      読込中...
+    <div v-else-if="state.loading && state.conversations.length === 0" class="flex flex-col items-center mt-10 gap-3">
+      <div class="w-6 h-6 border-2 border-[#333] border-t-accent rounded-full" style="animation: spin 0.6s linear infinite"></div>
+      <span class="text-text-dim text-sm">読込中...</span>
     </div>
     <div v-else-if="displayItems.length === 0" class="text-text-dim text-center mt-10 text-sm">
       表示するメッセージがありません
