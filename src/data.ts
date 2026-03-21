@@ -464,6 +464,9 @@ export function getSessions(projectFilter: string | null): SessionInfo[] {
     }
   }
 
+  // 最新セッションが先頭
+  sessions.sort((a, b) => b.lastTimestamp.localeCompare(a.lastTimestamp));
+
   return sessions;
 }
 
