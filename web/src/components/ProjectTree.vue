@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useConversations } from '../composables/useConversations'
+import type { Session } from '../composables/useConversations'
 import Tooltip from './Tooltip.vue'
 
 const { state, selectProject, selectSession } = useConversations()
@@ -74,17 +75,17 @@ function shortSessionId(id: string): string {
   return id.slice(0, 8)
 }
 
-function getSessionId(s: any): string {
+function getSessionId(s: Session): string {
   return s.sessionId || ''
 }
-function getMsgCount(s: any): number {
-  return s.messageCount ?? s.totalMessages ?? 0
+function getMsgCount(s: Session): number {
+  return s.messageCount ?? 0
 }
-function getSubagentCount(s: any): number {
+function getSubagentCount(s: Session): number {
   return s.subagentCount ?? 0
 }
-function getLastUpdate(s: any): string {
-  return s.lastTimestamp ?? s.lastUpdate ?? ''
+function getLastUpdate(s: Session): string {
+  return s.lastUpdate ?? ''
 }
 </script>
 

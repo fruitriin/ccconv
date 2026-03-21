@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import Tooltip from './Tooltip.vue'
 import { useConversations } from '../composables/useConversations'
 import type { Entry } from '../composables/useConversations'
@@ -61,9 +61,7 @@ function toggleToolResult(tri: number) {
   }
 }
 
-function isEmpty(): boolean {
-  return isEmptyEntry(props.entry, { isHook, isToolResultEntry })
-}
+const isEmpty = computed(() => isEmptyEntry(props.entry, { isHook, isToolResultEntry }))
 </script>
 
 <template>
@@ -130,7 +128,7 @@ function isEmpty(): boolean {
 
   <!-- 通常メッセージ（空エントリは非表示） -->
   <div
-    v-else-if="!isEmpty()"
+    v-else-if="!isEmpty"
     class="rounded-lg px-3.5 py-2.5 max-w-[80%] text-[13px] leading-relaxed"
     :class="entry.type === 'user'
       ? 'bg-user-bg self-end ml-auto'

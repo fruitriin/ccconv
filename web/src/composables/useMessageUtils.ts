@@ -106,6 +106,23 @@ export function isEmptyEntry(entry: Entry, options?: { isHook: (e: Entry) => boo
   return false
 }
 
+// サブエージェントペイン用: tool_result を空扱い（中身が見えないので非表示）
+export function isEmptySubagentEntry(entry: Entry): boolean {
+  const text = getTextContent(entry)
+  if (text.trim()) return false
+  if (isToolUse(entry)) return false
+  const content = entry.message?.content
+  if (!content) return true
+  if (typeof content === 'string' && !content.trim()) return true
+  if (Array.isArray(content) && content.length === 0) return true
+  if (Array.isArray(content) && content.some(c => c.type === 'tool_result') && !text.trim()) return true
+  if (Array.isArray(content) && content.every(c =>
+    (c.type === 'text' && !c.text?.trim()) ||
+    (c.type === 'tool_result')
+  )) return true
+  return false
+}
+
 export function isSkillPrompt(entry: Entry): boolean {
   if (entry.type !== 'user') return false
   const text = getTextContent(entry).trim()

@@ -77,7 +77,7 @@ function findScrollTarget(): string | null {
 // → captureVisibleUuids() で旧DOMの画面内要素を取得できる
 // → nextTick() で新DOMに切り替わった後にスクロール先を探す
 watch(
-  () => JSON.stringify([state.filters.tools, state.filters.thinking, state.filters.subagents, state.filters.hooks, state.filters.user, state.filters.assistant]),
+  () => [state.filters.tools, state.filters.thinking, state.filters.subagents, state.filters.hooks, state.filters.user, state.filters.assistant] as const,
   () => {
     // 旧DOM がまだ残っている段階で画面内要素をキャプチャ
     captureVisibleUuids()

@@ -4,6 +4,7 @@ import type { Entry } from '../composables/useConversations'
 import {
   getTextContent,
   isToolUse,
+  isEmptySubagentEntry,
   getToolNames,
   formatTime,
 } from '../composables/useMessageUtils'
@@ -31,7 +32,6 @@ type Segment =
 interface PaneGroup {
   agentId: string
   entries: Entry[]
-  description?: string
   model?: string
 }
 
@@ -68,34 +68,6 @@ function getItemUuid(item: ConvItem): string {
 function getGroupModel(entries: Entry[]): string {
   const assistantEntry = entries.find(e => e.type === 'assistant' && e.message?.model)
   return assistantEntry?.message?.model?.split('-').slice(0, 2).join('-') ?? 'unknown'
-}
-
-function getGroupDescription(entries: Entry[]): string | undefined {
-  // agentId を持つエントリの親セッションから Agent tool_use の description を取得
-  // entries の中に description はないため、agentId から推測不可。空でよい
-  return undefined
-}
-
-function isToolResult(entry: Entry): boolean {
-  const content = entry.message?.content
-  if (!Array.isArray(content)) return false
-  return content.some(c => c.type === 'tool_result')
-}
-
-function isEmptyEntry(entry: Entry): boolean {
-  const text = getTextContent(entry)
-  if (text.trim()) return false
-  if (isToolUse(entry)) return false
-  if (isToolResult(entry) && !text.trim()) return true
-  const content = entry.message?.content
-  if (!content) return true
-  if (typeof content === 'string' && !content.trim()) return true
-  if (Array.isArray(content) && content.length === 0) return true
-  if (Array.isArray(content) && content.every(c =>
-    (c.type === 'text' && !c.text?.trim()) ||
-    (c.type === 'tool_result')
-  )) return true
-  return false
 }
 
 // タイムスタンプ範囲が重複するか判定
@@ -135,14 +107,6 @@ const segments = computed<Segment[]>(() => {
       end: timestamps[timestamps.length - 1] ?? '',
     }
   })
-
-  // メインアイテムのタイムスタンプリスト（挿入ポイント計算用）
-  const mainTimestamps = mainItems.map(item => item.entry?.timestamp ?? '')
-
-  // 処理済みグループを追跡
-  const processedAgentIds = new Set<string>()
-  // メインアイテムの処理済みインデックス
-  let mainIdx = 0
 
   // 全アイテムを時系列に走査
   // サブエージェントグループをメインの時系列に差し込む
@@ -187,7 +151,6 @@ const segments = computed<Segment[]>(() => {
           agentId: gr.agentId,
           entries: gr.entries,
           model: getGroupModel(gr.entries),
-          description: getGroupDescription(gr.entries),
         })),
         mainItems: parallelMainItems.length > 0 ? [...parallelMainItems] : undefined,
       })
@@ -271,7 +234,7 @@ function buildTimeSlots(groups: PaneGroup[], mainItems?: ConvItem[]): TimeSlot[]
 
   for (let pIdx = 0; pIdx < allPanes.length; pIdx++) {
     for (const entry of allPanes[pIdx].entries) {
-      if (isEmptyEntry(entry)) continue
+      if (isEmptySubagentEntry(entry)) continue
       const time = entry.timestamp?.split('T')[1]?.slice(0, 5) ?? ''
       if (!time) continue
       if (!timeMap.has(time)) {
@@ -439,7 +402,6 @@ function buildTimeSlots(groups: PaneGroup[], mainItems?: ConvItem[]): TimeSlot[]
             <div class="px-2 py-1.5 bg-[rgba(233,69,96,0.1)] text-xs text-accent font-semibold flex items-center gap-1.5 flex-shrink-0">
               <span>🤖 {{ pane.agentId.slice(0, 8) }}</span>
               <span class="text-text-dim">({{ pane.model }})</span>
-              <span v-if="pane.description" class="text-text-dim truncate">{{ pane.description }}</span>
             </div>
             <!-- ペインボディ -->
             <div
@@ -448,7 +410,7 @@ function buildTimeSlots(groups: PaneGroup[], mainItems?: ConvItem[]): TimeSlot[]
             >
               <template v-for="entry in pane.entries" :key="entry.uuid ?? entry.timestamp">
                 <div
-                  v-if="!isEmptyEntry(entry)"
+                  v-if="!isEmptySubagentEntry(entry)"
                   class="rounded-md p-2 text-[13px]"
                   :class="entry.type === 'user'
                     ? 'bg-[rgba(26,58,92,0.6)] self-end max-w-[85%]'

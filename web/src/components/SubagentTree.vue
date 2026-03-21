@@ -5,6 +5,7 @@ import Tooltip from './Tooltip.vue'
 import {
   getTextContent,
   isToolUse,
+  isEmptySubagentEntry,
   getToolNames,
   formatTime,
 } from '../composables/useMessageUtils'
@@ -29,29 +30,6 @@ function getModel(): string {
   return assistantEntry?.message?.model?.split('-').slice(0, 2).join('-') ?? 'unknown'
 }
 
-function isToolResult(entry: Entry): boolean {
-  const content = entry.message?.content
-  if (!Array.isArray(content)) return false
-  return content.some(c => c.type === 'tool_result')
-}
-
-function isEmptyEntry(entry: Entry): boolean {
-  const text = getTextContent(entry)
-  if (text.trim()) return false
-  if (isToolUse(entry)) return false
-  // tool_result はテキストがなくても空ではない（Tools フィルタで制御すべき）
-  // ただしサブエージェント内では表示しても中身が見えないので空扱い
-  if (isToolResult(entry) && !text.trim()) return true
-  const content = entry.message?.content
-  if (!content) return true
-  if (typeof content === 'string' && !content.trim()) return true
-  if (Array.isArray(content) && content.length === 0) return true
-  if (Array.isArray(content) && content.every(c =>
-    (c.type === 'text' && !c.text?.trim()) ||
-    (c.type === 'tool_result')
-  )) return true
-  return false
-}
 </script>
 
 <template>
@@ -72,7 +50,7 @@ function isEmptyEntry(entry: Entry): boolean {
         :key="entry.uuid ?? entry.timestamp"
       >
       <div
-        v-if="!isEmptyEntry(entry)"
+        v-if="!isEmptySubagentEntry(entry)"
         class="rounded-md p-2 text-[13px]"
         :class="entry.type === 'user'
           ? 'bg-[rgba(26,58,92,0.6)] self-end max-w-[85%]'
