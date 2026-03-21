@@ -211,13 +211,6 @@ const segments = computed<Segment[]>(() => {
   return result
 })
 
-// 同期モード: セグメントとペインインデックスから synced entries を取得
-// mainItems がある場合、pIdx=0 は main、pIdx=1~ は groups に対応
-function getSyncedEntries(seg: Segment & { type: 'parallel' }, pIdx: number): SyncedEntry[] {
-  const synced = buildSyncedPaneEntries(seg.groups, seg.mainItems)
-  const actualIdx = seg.mainItems && seg.mainItems.length > 0 ? pIdx + 1 : pIdx
-  return synced[actualIdx] ?? []
-}
 
 // グリッドクラスを返す（ペイン数に応じて）
 function paneGridClass(count: number): string {
@@ -227,53 +220,51 @@ function paneGridClass(count: number): string {
   return 'grid grid-cols-2 gap-2'
 }
 
-// タイムライン同期ロジック: 各ペインのエントリをタイムスロットで揃え、
-// エントリがない箇所にスペーサーを挿入する
-interface SyncedEntry {
-  type: 'entry' | 'spacer'
-  entry?: Entry
-  slotKey?: string // HH:MM
+// タイムライン同期ロジック: CSS Grid で全ペインを1つのグリッドにまとめる
+// 行 = タイムスロット（auto height → CSS が最も高いセルに自動揃え）
+// 列 = ペイン
+interface TimeSlot {
+  time: string  // "HH:MM"
+  cells: (Entry[] | null)[]  // paneIdx ごとのエントリ
 }
 
-function buildSyncedPaneEntries(groups: PaneGroup[], mainItems?: ConvItem[]): SyncedEntry[][] {
-  const allPanes: { entries: Entry[] }[] = mainItems && mainItems.length > 0
-    ? [{ entries: mainItems.map(i => i.entry!).filter(Boolean) }, ...groups]
-    : [...groups]
+interface SyncData {
+  slots: TimeSlot[]
+  headers: { label: string; isMain: boolean }[]
+  paneCount: number
+}
 
-  // 全タイムスロットを収集
-  const allSlots = new Set<string>()
-  const paneSlotEntries: Map<string, Entry[]>[] = []
+function buildSyncData(groups: PaneGroup[], mainItems?: ConvItem[]): SyncData {
+  const headers: { label: string; isMain: boolean }[] = []
+  const allEntries: Entry[][] = []
 
-  for (let pIdx = 0; pIdx < allPanes.length; pIdx++) {
-    const slotMap = new Map<string, Entry[]>()
-    for (const entry of allPanes[pIdx].entries) {
+  if (mainItems && mainItems.length > 0) {
+    headers.push({ label: '👑 Main', isMain: true })
+    allEntries.push(mainItems.map(i => i.entry!).filter(Boolean))
+  }
+  for (const g of groups) {
+    headers.push({ label: `🤖 ${g.agentId.slice(0, 8)} (${g.model ?? '?'})`, isMain: false })
+    allEntries.push(g.entries)
+  }
+
+  const timeMap = new Map<string, (Entry[] | null)[]>()
+  for (let pIdx = 0; pIdx < allEntries.length; pIdx++) {
+    for (const entry of allEntries[pIdx]) {
       if (isEmptySubagentEntry(entry)) continue
       const time = entry.timestamp?.split('T')[1]?.slice(0, 5) ?? ''
       if (!time) continue
-      allSlots.add(time)
-      if (!slotMap.has(time)) slotMap.set(time, [])
-      slotMap.get(time)!.push(entry)
+      if (!timeMap.has(time)) timeMap.set(time, Array(allEntries.length).fill(null))
+      const slot = timeMap.get(time)!
+      if (!slot[pIdx]) slot[pIdx] = []
+      slot[pIdx]!.push(entry)
     }
-    paneSlotEntries.push(slotMap)
   }
 
-  const sortedSlots = [...allSlots].sort()
-
-  // 各ペインのエントリリストをスペーサー付きで構築
-  return allPanes.map((_, pIdx) => {
-    const result: SyncedEntry[] = []
-    for (const slot of sortedSlots) {
-      const entries = paneSlotEntries[pIdx].get(slot)
-      if (entries && entries.length > 0) {
-        for (const entry of entries) {
-          result.push({ type: 'entry', entry, slotKey: slot })
-        }
-      } else {
-        result.push({ type: 'spacer', slotKey: slot })
-      }
-    }
-    return result
-  })
+  return {
+    slots: [...timeMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([time, cells]) => ({ time, cells })),
+    headers,
+    paneCount: allEntries.length,
+  }
 }
 </script>
 
@@ -300,9 +291,68 @@ function buildSyncedPaneEntries(groups: PaneGroup[], mainItems?: ConvItem[]): Sy
 
       <!-- 並列サブエージェント = ペイン分割 -->
       <template v-else-if="seg.type === 'parallel'">
+        <!-- 同期モード: CSS Grid で全ペインを1つのグリッドに -->
+        <template v-if="syncTimeline">
+          <!-- ヘッダー行 -->
+          <div class="flex gap-2">
+            <div
+              v-for="header in buildSyncData(seg.groups, seg.mainItems).headers"
+              :key="header.label"
+              class="flex-1 px-2 py-1.5 text-xs font-semibold rounded-t-md"
+              :class="header.isMain ? 'bg-accent/10 text-accent' : 'bg-[rgba(233,69,96,0.1)] text-accent'"
+            >
+              {{ header.label }}
+            </div>
+          </div>
+          <!-- Grid 本体: columns=ペイン数, rows=タイムスロット数(auto) -->
+          <div
+            class="grid border border-white/10 rounded-b-md"
+            :style="{ gridTemplateColumns: `repeat(${buildSyncData(seg.groups, seg.mainItems).paneCount}, 1fr)` }"
+          >
+            <template v-for="slot in buildSyncData(seg.groups, seg.mainItems).slots" :key="slot.time">
+              <div
+                v-for="(cells, pIdx) in slot.cells"
+                :key="`${slot.time}-${pIdx}`"
+                class="p-2 border-b border-r border-white/5 last:border-r-0"
+              >
+                <template v-if="cells && cells.length > 0">
+                  <div
+                    v-for="entry in cells"
+                    :key="entry.uuid ?? entry.timestamp"
+                    :data-uuid="entry.uuid"
+                    @click="entry.uuid && emit('setAnchor', entry.uuid)"
+                    class="rounded-md p-2.5 text-[13px] mb-1.5 last:mb-0"
+                    :class="[
+                      anchorUuid === entry.uuid ? 'ring-1 ring-accent' : '',
+                      entry.type === 'user' ? 'bg-[rgba(26,58,92,0.6)]' : 'bg-[rgba(42,42,62,0.8)]'
+                    ]"
+                  >
+                    <div class="flex items-center gap-2 mb-1 text-[11px]">
+                      <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Assistant' }}</span>
+                      <span class="text-text-dim">{{ formatTime(entry.timestamp) }}</span>
+                      <Tooltip v-if="isToolUse(entry)" :text="getToolNames(entry).join(', ')">
+                        <span class="text-[#f0a500] text-[11px] truncate max-w-[60%] inline-block">
+                          🔧 {{ getToolNames(entry).join(', ') }}
+                        </span>
+                      </Tooltip>
+                    </div>
+                    <div v-if="getTextContent(entry)" class="whitespace-pre-wrap break-words leading-relaxed text-text text-[13px]">
+                      {{ getTextContent(entry) }}
+                    </div>
+                    <div v-else-if="isToolUse(entry)" class="text-text-dim italic text-xs">
+                      ツール実行
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <!-- 通常ペインモード -->
         <div
+          v-else
           :class="paneGridClass(seg.groups.length + (seg.mainItems?.length ? 1 : 0))"
-          class=""
           :style="flowMode ? {} : { minHeight: '15rem' }"
         >
           <!-- メインペイン（Team パターン時） -->
@@ -333,89 +383,48 @@ function buildSyncedPaneEntries(groups: PaneGroup[], mainItems?: ConvItem[]): Sy
               </div>
             </div>
           </div>
-          <!-- サブエージェントペイン（同期時はスペーサー挿入） -->
+          <!-- サブエージェントペイン -->
           <div
-            v-for="(pane, pIdx) in seg.groups"
+            v-for="pane in seg.groups"
             :key="pane.agentId"
             class="border border-subagent-border rounded-md flex flex-col min-w-0"
             :class="flowMode ? '' : 'flex-1 overflow-hidden'"
           >
-            <!-- ペインヘッダー -->
             <div class="px-2 py-1.5 bg-[rgba(233,69,96,0.1)] text-xs text-accent font-semibold flex items-center gap-1.5 flex-shrink-0">
               <span>🤖 {{ pane.agentId.slice(0, 8) }}</span>
               <span class="text-text-dim">({{ pane.model }})</span>
             </div>
-            <!-- ペインボディ -->
             <div
               class="p-2 flex flex-col gap-1.5 bg-black/20"
               :class="flowMode ? '' : 'flex-1 overflow-y-auto max-h-[50vh]'"
             >
-              <!-- 同期モード: スペーサー付きエントリ -->
-              <template v-if="syncTimeline">
-                <template v-for="(se, seIdx) in getSyncedEntries(seg, pIdx)" :key="seIdx">
-                  <!-- スペーサー -->
-                  <div v-if="se.type === 'spacer'" class="min-h-4 flex items-center justify-center">
-                    <div class="w-full border-t border-dashed border-white/5"></div>
+              <template v-for="entry in pane.entries" :key="entry.uuid ?? entry.timestamp">
+                <div
+                  v-if="!isEmptySubagentEntry(entry)"
+                  :data-uuid="entry.uuid"
+                  @click="entry.uuid && emit('setAnchor', entry.uuid)"
+                  class="rounded-md p-2 text-[13px]"
+                  :class="[
+                    anchorUuid === entry.uuid ? 'ring-1 ring-accent' : '',
+                    entry.type === 'user' ? 'bg-[rgba(26,58,92,0.6)] self-end max-w-[85%]' : 'bg-[rgba(42,42,62,0.8)] self-start max-w-[85%]'
+                  ]"
+                >
+                  <div class="flex items-center gap-2 mb-1 text-[11px]">
+                    <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Assistant' }}</span>
+                    <span class="text-text-dim">{{ formatTime(entry.timestamp) }}</span>
+                    <Tooltip v-if="isToolUse(entry)" :text="getToolNames(entry).join(', ')">
+                      <span class="text-[#f0a500] text-[11px] truncate max-w-[60%] inline-block">
+                        🔧 {{ getToolNames(entry).join(', ') }}
+                      </span>
+                    </Tooltip>
                   </div>
-                  <!-- エントリ -->
-                  <div
-                    v-else-if="se.entry"
-                    :data-uuid="se.entry.uuid"
-                    @click="se.entry.uuid && emit('setAnchor', se.entry.uuid)"
-                    class="rounded-md p-2 text-[13px]"
-                    :class="[
-                      anchorUuid === se.entry.uuid ? 'ring-1 ring-accent' : '',
-                      se.entry.type === 'user' ? 'bg-[rgba(26,58,92,0.6)] self-end max-w-[85%]' : 'bg-[rgba(42,42,62,0.8)] self-start max-w-[85%]'
-                    ]"
-                  >
-                    <div class="flex items-center gap-2 mb-1 text-[11px]">
-                      <span class="font-semibold text-text-dim">{{ se.entry.type === 'user' ? 'User' : 'Assistant' }}</span>
-                      <span class="text-text-dim">{{ formatTime(se.entry.timestamp) }}</span>
-                      <Tooltip v-if="isToolUse(se.entry)" :text="getToolNames(se.entry).join(', ')">
-                        <span class="text-[#f0a500] text-[11px] truncate max-w-[60%] inline-block">
-                          🔧 {{ getToolNames(se.entry).join(', ') }}
-                        </span>
-                      </Tooltip>
-                    </div>
-                    <div v-if="getTextContent(se.entry)" class="whitespace-pre-wrap break-words leading-relaxed text-text">
-                      {{ getTextContent(se.entry) }}
-                    </div>
-                    <div v-else-if="isToolUse(se.entry)" class="text-text-dim italic text-xs">
-                      ツール実行
-                    </div>
+                  <div v-if="getTextContent(entry)" class="whitespace-pre-wrap break-words leading-relaxed text-text">
+                    {{ getTextContent(entry) }}
                   </div>
-                </template>
-              </template>
-              <!-- 通常モード -->
-              <template v-else>
-                <template v-for="entry in pane.entries" :key="entry.uuid ?? entry.timestamp">
-                  <div
-                    v-if="!isEmptySubagentEntry(entry)"
-                    :data-uuid="entry.uuid"
-                    @click="entry.uuid && emit('setAnchor', entry.uuid)"
-                    class="rounded-md p-2 text-[13px]"
-                    :class="[
-                      anchorUuid === entry.uuid ? 'ring-1 ring-accent' : '',
-                      entry.type === 'user' ? 'bg-[rgba(26,58,92,0.6)] self-end max-w-[85%]' : 'bg-[rgba(42,42,62,0.8)] self-start max-w-[85%]'
-                    ]"
-                  >
-                    <div class="flex items-center gap-2 mb-1 text-[11px]">
-                      <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Assistant' }}</span>
-                      <span class="text-text-dim">{{ formatTime(entry.timestamp) }}</span>
-                      <Tooltip v-if="isToolUse(entry)" :text="getToolNames(entry).join(', ')">
-                        <span class="text-[#f0a500] text-[11px] truncate max-w-[60%] inline-block">
-                          🔧 {{ getToolNames(entry).join(', ') }}
-                        </span>
-                      </Tooltip>
-                    </div>
-                    <div v-if="getTextContent(entry)" class="whitespace-pre-wrap break-words leading-relaxed text-text">
-                      {{ getTextContent(entry) }}
-                    </div>
-                    <div v-else-if="isToolUse(entry)" class="text-text-dim italic text-xs">
-                      ツール実行
-                    </div>
+                  <div v-else-if="isToolUse(entry)" class="text-text-dim italic text-xs">
+                    ツール実行
                   </div>
-                </template>
+                </div>
               </template>
             </div>
           </div>
