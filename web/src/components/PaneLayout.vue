@@ -300,9 +300,7 @@ function buildSyncedPaneEntries(groups: PaneGroup[], mainItems?: ConvItem[]): Sy
 
       <!-- 並列サブエージェント = ペイン分割 -->
       <template v-else-if="seg.type === 'parallel'">
-        <!-- 通常ペインモード（同期時はスペーサー挿入） -->
         <div
-          v-else
           :class="paneGridClass(seg.groups.length + (seg.mainItems?.length ? 1 : 0))"
           class=""
           :style="flowMode ? {} : { minHeight: '15rem' }"
