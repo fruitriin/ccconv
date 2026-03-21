@@ -13,9 +13,9 @@ function onTypeChange(e: Event) {
 </script>
 
 <template>
-  <div class="filter-bar">
-    <div class="filter-group">
-      <label>期間</label>
+  <div class="flex items-center gap-3 px-4 py-2 bg-surface border-b border-[#222] flex-shrink-0">
+    <div class="flex items-center gap-1.5">
+      <label class="text-text-dim text-xs whitespace-nowrap">期間</label>
       <select :value="state.sinceFilter" @change="onSinceChange">
         <option value="today">今日</option>
         <option value="3days">3日</option>
@@ -23,54 +23,21 @@ function onTypeChange(e: Event) {
         <option value="all">全期間</option>
       </select>
     </div>
-    <div class="filter-group">
-      <label>種別</label>
+    <div class="flex items-center gap-1.5">
+      <label class="text-text-dim text-xs whitespace-nowrap">種別</label>
       <select :value="state.typeFilter" @change="onTypeChange">
         <option value="all">すべて</option>
         <option value="user">ユーザー</option>
         <option value="assistant">アシスタント</option>
       </select>
     </div>
-    <div class="filter-group search-group">
+    <div class="flex items-center gap-1.5 flex-1">
       <input
         v-model="state.searchText"
         type="text"
         placeholder="テキスト検索..."
-        class="search-input"
+        class="w-full max-w-75"
       />
     </div>
   </div>
 </template>
-
-<style scoped>
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid #222;
-  flex-shrink: 0;
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-label {
-  color: var(--text-dim);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.search-group {
-  flex: 1;
-}
-
-.search-input {
-  width: 100%;
-  max-width: 300px;
-}
-</style>

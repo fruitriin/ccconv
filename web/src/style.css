@@ -1,52 +1,21 @@
-:root {
-  --bg: #1a1a2e;
-  --surface: #16213e;
-  --surface2: #0f3460;
-  --text: #e0e0e0;
-  --text-dim: #888;
-  --accent: #e94560;
-  --user-bg: #1a3a5c;
-  --assistant-bg: #2a2a3e;
-  --subagent-border: #e94560;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
+* { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  background: var(--bg);
-  color: var(--text);
   font-family: 'Segoe UI', system-ui, sans-serif;
   font-size: 14px;
+  background: #1a1a2e;
+  color: #e0e0e0;
   height: 100vh;
   overflow: hidden;
 }
-
 #app {
   height: 100vh;
   display: flex;
   flex-direction: column;
 }
-
-/* スクロールバー */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--surface);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--surface2);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
-}
-
-/* ボタン共通 */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #16213e; }
+::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #e94560; }
 button {
   cursor: pointer;
   border: none;
@@ -54,32 +23,33 @@ button {
   color: inherit;
   font: inherit;
 }
-
-/* セレクト共通 */
 select {
-  background: var(--surface2);
-  color: var(--text);
+  background: #0f3460;
+  color: #e0e0e0;
   border: 1px solid #333;
   border-radius: 4px;
   padding: 4px 8px;
   font-size: 13px;
   cursor: pointer;
 }
-select:focus {
-  outline: 1px solid var(--accent);
-}
-
+select:focus { outline: 1px solid #e94560; }
 input[type="text"] {
-  background: var(--surface2);
-  color: var(--text);
+  background: #0f3460;
+  color: #e0e0e0;
   border: 1px solid #333;
   border-radius: 4px;
   padding: 4px 8px;
   font-size: 13px;
 }
-input[type="text"]:focus {
-  outline: 1px solid var(--accent);
+input[type="text"]:focus { outline: 1px solid #e94560; }
+input[type="text"]::placeholder { color: #888; }
+mark {
+  background: #e94560;
+  color: white;
+  border-radius: 2px;
+  padding: 0 2px;
 }
-input[type="text"]::placeholder {
-  color: var(--text-dim);
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }

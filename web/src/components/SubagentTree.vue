@@ -50,135 +50,40 @@ function getToolNames(entry: Entry): string[] {
 </script>
 
 <template>
-  <div class="subagent-tree">
-    <div class="subagent-header" @click="toggleExpand">
-      <span class="toggle">{{ expanded ? '▼' : '▶' }}</span>
-      <span class="label">🤖 {{ agentId.slice(0, 8) }} ({{ getModel() }})</span>
-      <span class="msg-count">{{ entries.length }}件</span>
+  <div class="my-2 border border-subagent-border rounded-md overflow-hidden">
+    <!-- ヘッダー -->
+    <div
+      class="flex items-center gap-2 px-2.5 py-1.5 bg-[rgba(233,69,96,0.1)] cursor-pointer select-none transition-colors hover:bg-[rgba(233,69,96,0.2)]"
+      @click="toggleExpand"
+    >
+      <span class="text-[10px] text-accent">{{ expanded ? '▼' : '▶' }}</span>
+      <span class="text-xs font-semibold text-accent flex-1">🤖 {{ agentId.slice(0, 8) }} ({{ getModel() }})</span>
+      <span class="text-[11px] text-text-dim">{{ entries.length }}件</span>
     </div>
-    <div v-if="expanded" class="subagent-body">
+    <!-- ボディ -->
+    <div v-if="expanded" class="p-2 flex flex-col gap-1.5 bg-black/20">
       <div
         v-for="entry in entries"
         :key="entry.uuid ?? entry.timestamp"
-        class="entry"
-        :class="entry.type"
+        class="rounded-md p-2 text-[13px]"
+        :class="entry.type === 'user'
+          ? 'bg-[rgba(26,58,92,0.6)] self-end max-w-[85%]'
+          : 'bg-[rgba(42,42,62,0.8)] self-start max-w-[85%]'"
       >
-        <div class="entry-meta">
-          <span class="entry-role">{{ entry.type === 'user' ? 'User' : 'Assistant' }}</span>
-          <span class="entry-time">{{ formatTime(entry.timestamp) }}</span>
-          <span v-if="isToolUse(entry)" class="tool-badge">
+        <div class="flex items-center gap-2 mb-1 text-[11px]">
+          <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Assistant' }}</span>
+          <span class="text-text-dim">{{ formatTime(entry.timestamp) }}</span>
+          <span v-if="isToolUse(entry)" class="text-[#f0a500] text-[11px]">
             🔧 {{ getToolNames(entry).join(', ') }}
           </span>
         </div>
-        <div class="entry-content" v-if="getTextContent(entry)">
+        <div v-if="getTextContent(entry)" class="whitespace-pre-wrap break-words leading-relaxed text-text">
           {{ getTextContent(entry) }}
         </div>
-        <div class="entry-content empty-content" v-else-if="isToolUse(entry)">
+        <div v-else-if="isToolUse(entry)" class="text-text-dim italic text-xs">
           ツール実行
         </div>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.subagent-tree {
-  margin: 8px 0;
-  border: 1px solid var(--subagent-border);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.subagent-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  background: rgba(233, 69, 96, 0.1);
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.15s;
-}
-
-.subagent-header:hover {
-  background: rgba(233, 69, 96, 0.2);
-}
-
-.toggle {
-  font-size: 10px;
-  color: var(--accent);
-}
-
-.label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent);
-  flex: 1;
-}
-
-.msg-count {
-  font-size: 11px;
-  color: var(--text-dim);
-}
-
-.subagent-body {
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: rgba(0,0,0,0.2);
-}
-
-.entry {
-  border-radius: 6px;
-  padding: 8px;
-  font-size: 13px;
-}
-
-.entry.user {
-  background: rgba(26, 58, 92, 0.6);
-  align-self: flex-end;
-  max-width: 85%;
-}
-
-.entry.assistant {
-  background: rgba(42, 42, 62, 0.8);
-  align-self: flex-start;
-  max-width: 85%;
-}
-
-.entry-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-  font-size: 11px;
-}
-
-.entry-role {
-  font-weight: 600;
-  color: var(--text-dim);
-}
-
-.entry-time {
-  color: var(--text-dim);
-}
-
-.tool-badge {
-  color: #f0a500;
-  font-size: 11px;
-}
-
-.entry-content {
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.5;
-  color: var(--text);
-}
-
-.empty-content {
-  color: var(--text-dim);
-  font-style: italic;
-  font-size: 12px;
-}
-</style>

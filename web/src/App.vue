@@ -8,72 +8,19 @@ const { state } = useConversations()
 </script>
 
 <template>
-  <div class="app-layout">
+  <div class="flex h-screen overflow-hidden">
     <!-- 左サイドバー -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <span class="app-title">ccconv</span>
-        <span v-if="state.loading" class="loading-dot">●</span>
+    <aside class="w-62.5 flex-shrink-0 bg-surface border-r border-[#222] flex flex-col overflow-hidden">
+      <div class="flex items-center gap-2 px-4 py-3 border-b border-[#222] bg-surface2">
+        <span class="font-bold text-base text-accent tracking-wide">ccconv</span>
+        <span v-if="state.loading" class="text-[8px] text-accent" style="animation: pulse 1s infinite">●</span>
       </div>
       <ProjectTree />
     </aside>
     <!-- メインエリア -->
-    <main class="main">
+    <main class="flex-1 flex flex-col overflow-hidden bg-bg">
       <FilterBar />
       <ConversationView />
     </main>
   </div>
 </template>
-
-<style scoped>
-.app-layout {
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
-}
-
-.sidebar {
-  width: 250px;
-  flex-shrink: 0;
-  background: var(--surface);
-  border-right: 1px solid #222;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #222;
-  background: var(--surface2);
-}
-
-.app-title {
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--accent);
-  letter-spacing: 0.05em;
-}
-
-.loading-dot {
-  font-size: 8px;
-  color: var(--accent);
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--bg);
-}
-</style>

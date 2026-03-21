@@ -64,7 +64,6 @@ const displayItems = computed<ConvItem[]>(() => {
   const searchText = state.searchText.toLowerCase()
 
   // サブエージェントをグループ化（agentId → entries）
-  // 各グループの「最初のエントリのタイムスタンプ」を記録して、挿入位置を決める
   const subagentMap = new Map<string, { entries: Entry[]; firstTimestamp: string }>()
   const mainEntries: Entry[] = []
 
@@ -76,7 +75,6 @@ const displayItems = computed<ConvItem[]>(() => {
       }
       const group = subagentMap.get(id)!
       group.entries.push(entry)
-      // 最初のタイムスタンプを更新（より早いものを保持）
       if (entry.timestamp && entry.timestamp < group.firstTimestamp) {
         group.firstTimestamp = entry.timestamp
       }
@@ -85,7 +83,6 @@ const displayItems = computed<ConvItem[]>(() => {
     }
   }
 
-  // サブエージェントグループを firstTimestamp 順にソート
   const subagentGroups = [...subagentMap.entries()].sort(
     ([, a], [, b]) => a.firstTimestamp.localeCompare(b.firstTimestamp)
   )
@@ -94,8 +91,6 @@ const displayItems = computed<ConvItem[]>(() => {
   let subagentIdx = 0
 
   for (const entry of mainEntries) {
-    // サブエージェントグループをこのエントリの前に挿入すべきか確認
-    // （typeFilter が 'all' または 'assistant' の場合のみ）
     if (typeFilter === 'all' || typeFilter === 'assistant') {
       while (
         subagentIdx < subagentGroups.length &&
@@ -108,21 +103,17 @@ const displayItems = computed<ConvItem[]>(() => {
       }
     }
 
-    // typeフィルタ
     if (typeFilter === 'user' && entry.type !== 'user') continue
     if (typeFilter === 'assistant' && entry.type !== 'assistant') continue
-    // tool_resultのみのユーザーエントリはskip（typeFilter === 'all'でも）
     if (entry.type === 'user' && isToolResult(entry) && typeFilter !== 'user') continue
 
     const text = getTextContent(entry)
 
-    // テキスト検索
     if (searchText && !text.toLowerCase().includes(searchText)) continue
 
     items.push({ type: 'entry', entry, searchText: text })
   }
 
-  // 残ったサブエージェントグループを末尾に追加
   if (typeFilter === 'all' || typeFilter === 'assistant') {
     while (subagentIdx < subagentGroups.length) {
       const [agentId, group] = subagentGroups[subagentIdx]
@@ -142,14 +133,14 @@ function highlightText(text: string, search: string): string {
 </script>
 
 <template>
-  <div class="conversation-view">
-    <div v-if="!state.selectedSession" class="placeholder">
+  <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2.5">
+    <div v-if="!state.selectedSession" class="text-text-dim text-center mt-10 text-sm">
       セッションを選択してください
     </div>
-    <div v-else-if="state.loading && state.conversations.length === 0" class="placeholder">
+    <div v-else-if="state.loading && state.conversations.length === 0" class="text-text-dim text-center mt-10 text-sm">
       読込中...
     </div>
-    <div v-else-if="displayItems.length === 0" class="placeholder">
+    <div v-else-if="displayItems.length === 0" class="text-text-dim text-center mt-10 text-sm">
       表示するメッセージがありません
     </div>
     <template v-else>
@@ -157,24 +148,26 @@ function highlightText(text: string, search: string): string {
         <!-- 通常エントリ -->
         <div
           v-if="item.type === 'entry' && item.entry"
-          class="message"
-          :class="[item.entry.type, { 'has-tool': isToolUse(item.entry) }]"
+          class="rounded-lg px-3.5 py-2.5 max-w-[80%] text-[13px] leading-relaxed"
+          :class="item.entry.type === 'user'
+            ? 'bg-user-bg self-end ml-auto'
+            : 'bg-assistant-bg self-start'"
         >
-          <div class="message-meta">
-            <span class="role">{{ item.entry.type === 'user' ? 'User' : 'Assistant' }}</span>
-            <span class="time">{{ formatTime(item.entry.timestamp) }}</span>
-            <span v-if="isToolUse(item.entry)" class="tool-info">
+          <div class="flex items-center gap-2 mb-1.5 text-[11px] flex-wrap">
+            <span class="font-bold text-text-dim">{{ item.entry.type === 'user' ? 'User' : 'Assistant' }}</span>
+            <span class="text-text-dim">{{ formatTime(item.entry.timestamp) }}</span>
+            <span v-if="isToolUse(item.entry)" class="text-[#f0a500]">
               🔧 {{ getToolNames(item.entry).join(', ') }}
             </span>
-            <span v-if="item.entry.message?.usage" class="token-info">
+            <span v-if="item.entry.message?.usage" class="text-text-dim ml-auto">
               {{ item.entry.message.usage.input_tokens }}in / {{ item.entry.message.usage.output_tokens }}out
             </span>
           </div>
           <div
-            class="message-body"
+            class="whitespace-pre-wrap break-words text-text"
             v-html="highlightText(getTextContent(item.entry), state.searchText)"
           ></div>
-          <div v-if="isToolUse(item.entry) && !getTextContent(item.entry)" class="message-body tool-only">
+          <div v-if="isToolUse(item.entry) && !getTextContent(item.entry)" class="text-text-dim italic text-xs">
             ツール実行のみ
           </div>
         </div>
@@ -188,86 +181,3 @@ function highlightText(text: string, search: string): string {
     </template>
   </div>
 </template>
-
-<style scoped>
-.conversation-view {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.placeholder {
-  color: var(--text-dim);
-  text-align: center;
-  margin-top: 40px;
-  font-size: 14px;
-}
-
-.message {
-  border-radius: 8px;
-  padding: 10px 14px;
-  max-width: 80%;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.message.user {
-  background: var(--user-bg);
-  align-self: flex-end;
-  margin-left: auto;
-}
-
-.message.assistant {
-  background: var(--assistant-bg);
-  align-self: flex-start;
-}
-
-.message-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  font-size: 11px;
-  flex-wrap: wrap;
-}
-
-.role {
-  font-weight: 700;
-  color: var(--text-dim);
-}
-
-.time {
-  color: var(--text-dim);
-}
-
-.tool-info {
-  color: #f0a500;
-}
-
-.token-info {
-  color: var(--text-dim);
-  margin-left: auto;
-}
-
-.message-body {
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: var(--text);
-}
-
-.tool-only {
-  color: var(--text-dim);
-  font-style: italic;
-  font-size: 12px;
-}
-
-:deep(mark) {
-  background: var(--accent);
-  color: white;
-  border-radius: 2px;
-  padding: 0 2px;
-}
-</style>
