@@ -190,15 +190,31 @@ async function fetchConversations(project: string, session: string) {
   }
 }
 
+function pushUrl() {
+  const parts = ['#']
+  if (state.selectedProject) {
+    parts.push(encodeURIComponent(state.selectedProject))
+    if (state.selectedSession) {
+      parts.push(state.selectedSession)
+    }
+  }
+  const hash = parts.length > 1 ? parts.join('/') : ''
+  if (window.location.hash !== hash) {
+    history.pushState(null, '', hash || window.location.pathname)
+  }
+}
+
 function selectProject(name: string) {
   state.selectedProject = name
   state.selectedSession = null
   state.conversations = []
+  pushUrl()
   fetchSessions(name)
 }
 
 function selectSession(sessionId: string) {
   state.selectedSession = sessionId
+  pushUrl()
   if (state.selectedProject) {
     fetchConversations(state.selectedProject, sessionId)
   }
@@ -210,7 +226,37 @@ function setSinceFilter(since: string) {
   state.selectedSession = null
   state.sessions = []
   state.conversations = []
+  pushUrl()
   fetchProjects()
+}
+
+// URL からの復元
+async function restoreFromUrl() {
+  const hash = window.location.hash
+  if (!hash || hash === '#') return
+
+  const parts = hash.slice(1).split('/').filter(Boolean)
+  if (parts.length >= 1) {
+    const project = decodeURIComponent(parts[0])
+    state.selectedProject = project
+    // since=all にしてプロジェクトを確実に表示
+    state.sinceFilter = 'all'
+    await fetchProjects()
+    await fetchSessions(project)
+
+    if (parts.length >= 2) {
+      const session = parts[1]
+      state.selectedSession = session
+      await fetchConversations(project, session)
+    }
+  }
+}
+
+// ブラウザの戻る/進むに対応
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', () => {
+    restoreFromUrl()
+  })
 }
 
 export function useConversations() {
@@ -225,5 +271,6 @@ export function useConversations() {
     selectProject,
     selectSession,
     setSinceFilter,
+    restoreFromUrl,
   }
 }

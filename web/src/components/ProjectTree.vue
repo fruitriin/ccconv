@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import { useConversations } from '../composables/useConversations'
 
-const { state, fetchProjects, selectProject, selectSession } = useConversations()
+const { state, selectProject, selectSession } = useConversations()
 
 // 展開中のプロジェクトセット
 const expandedProjects = ref<Set<string>>(new Set())
 
-onMounted(() => {
-  fetchProjects()
+// 選択中のプロジェクトを自動展開
+watch(() => state.selectedProject, (project) => {
+  if (project) expandedProjects.value.add(project)
 })
 
 function shortName(name: string): string {

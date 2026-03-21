@@ -1,10 +1,20 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import ProjectTree from './components/ProjectTree.vue'
 import FilterBar from './components/FilterBar.vue'
 import ConversationView from './components/ConversationView.vue'
 import { useConversations } from './composables/useConversations'
 
-const { state } = useConversations()
+const { state, fetchProjects, restoreFromUrl } = useConversations()
+
+onMounted(async () => {
+  const hash = window.location.hash
+  if (hash && hash !== '#') {
+    await restoreFromUrl()
+  } else {
+    await fetchProjects()
+  }
+})
 </script>
 
 <template>
