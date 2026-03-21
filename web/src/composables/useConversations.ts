@@ -131,10 +131,16 @@ const filteredConversations = computed(() => {
 
         if (hasThinking && !hasText && !hasToolUse) return state.filters.thinking !== 'hidden'
         if (hasToolUse && !hasText) return state.filters.tools !== 'hidden'
+        // テキストもツールもthinkingもない空エントリを除外
+        if (!hasText && !hasToolUse && !hasThinking) return false
         return state.filters.assistant
       }
+      // content が配列でない場合
+      if (!content || (typeof content === 'string' && !content.trim())) return false
       return state.filters.assistant
     }
+    // type が user でも assistant でもない空エントリ
+    if (!entry.message?.content) return false
     return true
   })
 })
