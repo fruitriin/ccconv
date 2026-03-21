@@ -1,11 +1,34 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import ProjectTree from './components/ProjectTree.vue'
 import FilterBar from './components/FilterBar.vue'
 import ConversationView from './components/ConversationView.vue'
 import { useConversations } from './composables/useConversations'
 
 const { state, fetchProjects, restoreFromUrl } = useConversations()
+
+const sidebarWidth = ref(250)
+const isResizing = ref(false)
+
+function startResize(e: MouseEvent) {
+  isResizing.value = true
+  const startX = e.clientX
+  const startWidth = sidebarWidth.value
+
+  function onMove(e: MouseEvent) {
+    const newWidth = startWidth + (e.clientX - startX)
+    sidebarWidth.value = Math.max(150, Math.min(600, newWidth))
+  }
+
+  function onUp() {
+    isResizing.value = false
+    document.removeEventListener('mousemove', onMove)
+    document.removeEventListener('mouseup', onUp)
+  }
+
+  document.addEventListener('mousemove', onMove)
+  document.addEventListener('mouseup', onUp)
+}
 
 onMounted(async () => {
   const hash = window.location.hash
@@ -18,15 +41,24 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden">
+  <div class="flex h-screen overflow-hidden" :class="isResizing ? 'select-none' : ''">
     <!-- 左サイドバー -->
-    <aside class="w-62.5 flex-shrink-0 bg-surface border-r border-[#222] flex flex-col overflow-hidden">
+    <aside
+      class="flex-shrink-0 bg-surface border-r border-[#222] flex flex-col overflow-hidden"
+      :style="{ width: sidebarWidth + 'px' }"
+    >
       <div class="flex items-center gap-2 px-4 py-3 border-b border-[#222] bg-surface2">
         <span class="font-bold text-base text-accent tracking-wide">ccconv</span>
         <div v-if="state.loading" class="w-3.5 h-3.5 border-2 border-[#333] border-t-accent rounded-full" style="animation: spin 0.6s linear infinite"></div>
       </div>
       <ProjectTree />
     </aside>
+    <!-- リサイズハンドル -->
+    <div
+      class="w-1 flex-shrink-0 cursor-col-resize hover:bg-accent/30 transition-colors"
+      :class="isResizing ? 'bg-accent/50' : 'bg-transparent'"
+      @mousedown="startResize"
+    ></div>
     <!-- メインエリア -->
     <main class="flex-1 flex flex-col overflow-hidden bg-bg relative">
       <FilterBar />

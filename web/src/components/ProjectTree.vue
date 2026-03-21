@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useConversations } from '../composables/useConversations'
+import Tooltip from './Tooltip.vue'
 
 const { state, selectProject, selectSession } = useConversations()
 
@@ -13,7 +14,12 @@ watch(() => state.selectedProject, (project) => {
 })
 
 function shortName(name: string): string {
-  // -Users-riin-workspace- 以降を取り出す
+  // 共通プレフィックス除去: -Users-{user}-workspace- or -Users-{user}-
+  const m = name.match(/^-Users-[^-]+-workspace-(.+)/) || name.match(/^-Users-[^-]+-(.+)/)
+  if (m) return m[1]
+  // -private-tmp- 等
+  const m2 = name.match(/^-private-tmp-(.+)/)
+  if (m2) return m2[1]
   const parts = name.split('-')
   if (parts.length > 4) {
     return parts.slice(4).join('-') || name
@@ -99,7 +105,9 @@ function getLastUpdate(s: any): string {
         @click="handleProjectClick(project.name)"
       >
         <span class="text-[9px] text-text-dim flex-shrink-0 w-3">{{ expandedProjects.has(project.name) ? '▼' : '▶' }}</span>
-        <span class="text-xs font-semibold whitespace-nowrap overflow-hidden text-ellipsis text-text flex-1 min-w-0" :title="project.name">{{ shortName(project.name) }}</span>
+        <Tooltip :text="project.name">
+          <span class="text-xs font-semibold whitespace-nowrap overflow-hidden text-ellipsis text-text block min-w-0">{{ shortName(project.name) }}</span>
+        </Tooltip>
         <span class="flex gap-1 flex-shrink-0">
           <span class="text-[10px] text-text-dim">💬{{ project.totalMessages }}</span>
           <span v-if="project.subagentCount > 0" class="text-[10px] text-text-dim">🤖{{ project.subagentCount }}</span>
