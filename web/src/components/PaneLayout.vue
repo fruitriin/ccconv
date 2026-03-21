@@ -35,13 +35,20 @@ interface PaneGroup {
   model?: string
 }
 
+interface TimeSlot {
+  time: string // "HH:MM" 形式
+  entries: (Entry[] | null)[] // paneIdx ごとのエントリ（null = 空）
+}
+
 const props = withDefaults(defineProps<{
   displayItems: ConvItem[]
   searchText?: string
   anchorUuid?: string | null
   flowMode?: boolean
+  syncTimeline?: boolean
 }>(), {
   flowMode: false,
+  syncTimeline: false,
 })
 
 const emit = defineEmits<{
@@ -253,6 +260,33 @@ function paneGridClass(count: number): string {
   // 4ペイン以上は2列グリッド
   return 'grid grid-cols-2 gap-2'
 }
+
+// タイムライン同期ロジック
+function buildTimeSlots(groups: PaneGroup[], mainItems?: ConvItem[]): TimeSlot[] {
+  const allPanes: { entries: Entry[] }[] = mainItems && mainItems.length > 0
+    ? [{ entries: mainItems.map(i => i.entry!).filter(Boolean) }, ...groups]
+    : [...groups]
+
+  const timeMap = new Map<string, (Entry[] | null)[]>()
+
+  for (let pIdx = 0; pIdx < allPanes.length; pIdx++) {
+    for (const entry of allPanes[pIdx].entries) {
+      if (isEmptyEntry(entry)) continue
+      const time = entry.timestamp?.split('T')[1]?.slice(0, 5) ?? ''
+      if (!time) continue
+      if (!timeMap.has(time)) {
+        timeMap.set(time, Array(allPanes.length).fill(null))
+      }
+      const slot = timeMap.get(time)!
+      if (!slot[pIdx]) slot[pIdx] = []
+      slot[pIdx]!.push(entry)
+    }
+  }
+
+  return [...timeMap.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([time, entries]) => ({ time, entries }))
+}
 </script>
 
 <template>
@@ -277,86 +311,170 @@ function paneGridClass(count: number): string {
       </template>
 
       <!-- 並列サブエージェント = ペイン分割 -->
-      <div
-        v-else-if="seg.type === 'parallel'"
-        :class="paneGridClass(seg.groups.length + (seg.mainItems?.length ? 1 : 0))"
-        class=""
-        :style="flowMode ? {} : { minHeight: '15rem' }"
-      >
-        <!-- メインペイン（Team パターン時） -->
+      <template v-else-if="seg.type === 'parallel'">
+        <!-- タイムライン同期モード -->
         <div
-          v-if="seg.mainItems && seg.mainItems.length > 0"
-          class="border border-accent/40 rounded-md flex flex-col min-w-0"
-          :class="flowMode ? '' : 'flex-1 overflow-hidden'"
+          v-if="syncTimeline"
+          class="border border-white/10 rounded-md overflow-hidden"
         >
-          <div class="px-2 py-1.5 bg-accent/10 text-xs text-accent font-semibold flex-shrink-0">
-            👑 Main
-          </div>
+          <!-- ペインヘッダー行 -->
           <div
-            class="p-2 flex flex-col gap-1.5 bg-black/10"
-            :class="flowMode ? '' : 'flex-1 overflow-y-auto max-h-[50vh]'"
+            class="grid border-b border-white/10 bg-surface2"
+            :style="{ gridTemplateColumns: `4rem repeat(${seg.groups.length + (seg.mainItems?.length ? 1 : 0)}, 1fr)` }"
           >
+            <!-- 時刻ラベル列ヘッダー -->
+            <div class="px-2 py-1.5 text-[10px] text-text-dim flex items-center justify-center border-r border-white/10">
+              HH:MM
+            </div>
+            <!-- メインペインヘッダー -->
             <div
-              v-for="item in seg.mainItems"
-              :key="getItemUuid(item)"
-              :data-uuid="getItemUuid(item)"
-              @click="emit('setAnchor', getItemUuid(item))"
+              v-if="seg.mainItems && seg.mainItems.length > 0"
+              class="px-2 py-1.5 bg-accent/10 text-xs text-accent font-semibold border-r border-white/10 last:border-r-0"
             >
-              <MessageBubble
-                v-if="item.entry"
-                :entry="item.entry"
-                :search-text="searchText ?? ''"
-                :idx="0"
-              />
+              👑 Main
+            </div>
+            <!-- サブエージェントペインヘッダー -->
+            <div
+              v-for="pane in seg.groups"
+              :key="pane.agentId"
+              class="px-2 py-1.5 bg-[rgba(233,69,96,0.1)] text-xs text-accent font-semibold flex items-center gap-1.5 border-r border-white/10 last:border-r-0"
+            >
+              <span>🤖 {{ pane.agentId.slice(0, 8) }}</span>
+              <span class="text-text-dim">({{ pane.model }})</span>
+            </div>
+          </div>
+          <!-- タイムスロット行 -->
+          <template v-for="slot in buildTimeSlots(seg.groups, seg.mainItems)" :key="slot.time">
+            <div
+              class="grid border-b border-white/5 last:border-b-0"
+              :style="{ gridTemplateColumns: `4rem repeat(${seg.groups.length + (seg.mainItems?.length ? 1 : 0)}, 1fr)` }"
+            >
+              <!-- 時刻ラベル -->
+              <div class="px-2 py-1 flex items-start justify-center border-r border-white/10 bg-black/10">
+                <span class="text-[10px] text-text-dim font-mono opacity-60 mt-1">{{ slot.time }}</span>
+              </div>
+              <!-- 各ペインのエントリ -->
+              <div
+                v-for="(entries, pIdx) in slot.entries"
+                :key="pIdx"
+                class="p-1 border-r border-white/5 last:border-r-0 min-h-8"
+              >
+                <template v-if="entries && entries.length > 0">
+                  <div
+                    v-for="entry in entries"
+                    :key="entry.uuid ?? entry.timestamp"
+                    class="rounded p-1.5 text-[12px] mb-1 last:mb-0"
+                    :class="entry.type === 'user'
+                      ? 'bg-[rgba(26,58,92,0.6)]'
+                      : 'bg-[rgba(42,42,62,0.8)]'"
+                  >
+                    <div class="flex items-center gap-1.5 mb-1 text-[10px]">
+                      <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Asst' }}</span>
+                      <Tooltip v-if="isToolUse(entry)" :text="getToolNames(entry).join(', ')">
+                        <span class="text-[#f0a500] text-[10px] truncate max-w-[70%] inline-block">
+                          🔧 {{ getToolNames(entry).join(', ') }}
+                        </span>
+                      </Tooltip>
+                    </div>
+                    <div v-if="getTextContent(entry)" class="whitespace-pre-wrap break-words leading-relaxed text-text text-[12px]">
+                      {{ getTextContent(entry) }}
+                    </div>
+                    <div v-else-if="isToolUse(entry)" class="text-text-dim italic text-[11px]">
+                      ツール実行
+                    </div>
+                  </div>
+                </template>
+                <!-- 空セル -->
+                <div v-else class="w-full h-full flex items-center justify-center">
+                  <span class="text-white/10 text-xs select-none">—</span>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- 通常ペインモード -->
+        <div
+          v-else
+          :class="paneGridClass(seg.groups.length + (seg.mainItems?.length ? 1 : 0))"
+          class=""
+          :style="flowMode ? {} : { minHeight: '15rem' }"
+        >
+          <!-- メインペイン（Team パターン時） -->
+          <div
+            v-if="seg.mainItems && seg.mainItems.length > 0"
+            class="border border-accent/40 rounded-md flex flex-col min-w-0"
+            :class="flowMode ? '' : 'flex-1 overflow-hidden'"
+          >
+            <div class="px-2 py-1.5 bg-accent/10 text-xs text-accent font-semibold flex-shrink-0">
+              👑 Main
+            </div>
+            <div
+              class="p-2 flex flex-col gap-1.5 bg-black/10"
+              :class="flowMode ? '' : 'flex-1 overflow-y-auto max-h-[50vh]'"
+            >
+              <div
+                v-for="item in seg.mainItems"
+                :key="getItemUuid(item)"
+                :data-uuid="getItemUuid(item)"
+                @click="emit('setAnchor', getItemUuid(item))"
+              >
+                <MessageBubble
+                  v-if="item.entry"
+                  :entry="item.entry"
+                  :search-text="searchText ?? ''"
+                  :idx="0"
+                />
+              </div>
+            </div>
+          </div>
+          <!-- サブエージェントペイン -->
+          <div
+            v-for="pane in seg.groups"
+            :key="pane.agentId"
+            class="border border-subagent-border rounded-md flex flex-col min-w-0"
+            :class="flowMode ? '' : 'flex-1 overflow-hidden'"
+          >
+            <!-- ペインヘッダー -->
+            <div class="px-2 py-1.5 bg-[rgba(233,69,96,0.1)] text-xs text-accent font-semibold flex items-center gap-1.5 flex-shrink-0">
+              <span>🤖 {{ pane.agentId.slice(0, 8) }}</span>
+              <span class="text-text-dim">({{ pane.model }})</span>
+              <span v-if="pane.description" class="text-text-dim truncate">{{ pane.description }}</span>
+            </div>
+            <!-- ペインボディ -->
+            <div
+              class="p-2 flex flex-col gap-1.5 bg-black/20"
+              :class="flowMode ? '' : 'flex-1 overflow-y-auto max-h-[50vh]'"
+            >
+              <template v-for="entry in pane.entries" :key="entry.uuid ?? entry.timestamp">
+                <div
+                  v-if="!isEmptyEntry(entry)"
+                  class="rounded-md p-2 text-[13px]"
+                  :class="entry.type === 'user'
+                    ? 'bg-[rgba(26,58,92,0.6)] self-end max-w-[85%]'
+                    : 'bg-[rgba(42,42,62,0.8)] self-start max-w-[85%]'"
+                >
+                  <div class="flex items-center gap-2 mb-1 text-[11px]">
+                    <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Assistant' }}</span>
+                    <span class="text-text-dim">{{ formatTime(entry.timestamp) }}</span>
+                    <Tooltip v-if="isToolUse(entry)" :text="getToolNames(entry).join(', ')">
+                      <span class="text-[#f0a500] text-[11px] truncate max-w-[60%] inline-block">
+                        🔧 {{ getToolNames(entry).join(', ') }}
+                      </span>
+                    </Tooltip>
+                  </div>
+                  <div v-if="getTextContent(entry)" class="whitespace-pre-wrap break-words leading-relaxed text-text">
+                    {{ getTextContent(entry) }}
+                  </div>
+                  <div v-else-if="isToolUse(entry)" class="text-text-dim italic text-xs">
+                    ツール実行
+                  </div>
+                </div>
+              </template>
             </div>
           </div>
         </div>
-        <!-- サブエージェントペイン -->
-        <div
-          v-for="pane in seg.groups"
-          :key="pane.agentId"
-          class="border border-subagent-border rounded-md flex flex-col min-w-0"
-          :class="flowMode ? '' : 'flex-1 overflow-hidden'"
-        >
-          <!-- ペインヘッダー -->
-          <div class="px-2 py-1.5 bg-[rgba(233,69,96,0.1)] text-xs text-accent font-semibold flex items-center gap-1.5 flex-shrink-0">
-            <span>🤖 {{ pane.agentId.slice(0, 8) }}</span>
-            <span class="text-text-dim">({{ pane.model }})</span>
-            <span v-if="pane.description" class="text-text-dim truncate">{{ pane.description }}</span>
-          </div>
-          <!-- ペインボディ -->
-          <div
-            class="p-2 flex flex-col gap-1.5 bg-black/20"
-            :class="flowMode ? '' : 'flex-1 overflow-y-auto max-h-[50vh]'"
-          >
-            <template v-for="entry in pane.entries" :key="entry.uuid ?? entry.timestamp">
-              <div
-                v-if="!isEmptyEntry(entry)"
-                class="rounded-md p-2 text-[13px]"
-                :class="entry.type === 'user'
-                  ? 'bg-[rgba(26,58,92,0.6)] self-end max-w-[85%]'
-                  : 'bg-[rgba(42,42,62,0.8)] self-start max-w-[85%]'"
-              >
-                <div class="flex items-center gap-2 mb-1 text-[11px]">
-                  <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Assistant' }}</span>
-                  <span class="text-text-dim">{{ formatTime(entry.timestamp) }}</span>
-                  <Tooltip v-if="isToolUse(entry)" :text="getToolNames(entry).join(', ')">
-                    <span class="text-[#f0a500] text-[11px] truncate max-w-[60%] inline-block">
-                      🔧 {{ getToolNames(entry).join(', ') }}
-                    </span>
-                  </Tooltip>
-                </div>
-                <div v-if="getTextContent(entry)" class="whitespace-pre-wrap break-words leading-relaxed text-text">
-                  {{ getTextContent(entry) }}
-                </div>
-                <div v-else-if="isToolUse(entry)" class="text-text-dim italic text-xs">
-                  ツール実行
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
-      </div>
+      </template>
 
       <!-- 単独サブエージェント -->
       <SubagentTree

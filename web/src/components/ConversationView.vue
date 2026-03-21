@@ -172,6 +172,7 @@ const displayItems = computed<ConvItem[]>(() => {
     :search-text="state.searchText"
     :anchor-uuid="state.anchorUuid"
     :flow-mode="state.viewMode === 'pane-flow'"
+    :sync-timeline="state.syncTimeline"
     @set-anchor="setAnchor"
   />
 

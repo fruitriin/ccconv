@@ -91,6 +91,7 @@ const state = reactive({
   searchText: '' as string,
   anchorUuid: null as string | null,
   viewMode: 'linear' as 'linear' | 'pane' | 'pane-flow',
+  syncTimeline: false as boolean,
   filters: {
     user: true,
     assistant: true,

@@ -110,6 +110,17 @@ const triButtons: Array<{ key: 'tools' | 'thinking' | 'subagents'; icon: string;
         </button>
       </div>
     </div>
+    <!-- タイムライン同期（ペイン/フローモード時のみ） -->
+    <div v-if="state.viewMode === 'pane' || state.viewMode === 'pane-flow'" class="flex items-center gap-1.5">
+      <button
+        @click="state.syncTimeline = !state.syncTimeline"
+        class="px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer border-none"
+        :class="state.syncTimeline ? 'bg-accent text-white' : 'bg-surface2 text-text-dim'"
+        title="タイムライン同期：同じ時間帯のメッセージを横一列に並べる"
+      >
+        ⏱ 同期
+      </button>
+    </div>
     <div class="flex items-center gap-1.5 flex-1">
       <input
         v-model="state.searchText"
