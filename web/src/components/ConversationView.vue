@@ -44,7 +44,7 @@ watch(
     nextTick(() => {
       const el = document.querySelector(`[data-uuid="${state.anchorUuid}"]`)
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.scrollIntoView({ behavior: 'instant', block: 'center' })
       }
     })
   }
