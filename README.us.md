@@ -28,8 +28,23 @@ After global installation, you can use it as the `ccconv` command.
 ### Basic Commands
 
 ```bash
-# Show today's log files and statistics
+# Show today's conversations in talk format (default)
 ccconv
+
+# Watch mode — show new messages in real-time
+ccconv talk --watch
+
+# Watch a specific session
+ccconv talk --watch --session=<id>
+
+# Include thinking blocks
+ccconv talk --thinking
+
+# Show tool calls
+ccconv talk --tools
+
+# Include subagent conversations
+ccconv talk --subagents
 
 # Export today's conversation data as JSON (default)
 ccconv raws
@@ -60,6 +75,14 @@ ccconv projects --since=all
 
 # Show token usage for last 4 hours
 ccconv tokens
+
+# Web dashboard (REST API + Vue.js frontend)
+ccconv web
+
+# List subagents
+ccconv subagents
+ccconv subagents --project=<name>
+ccconv subagents --session=<id>
 ```
 
 ### Project Display Options
@@ -104,7 +127,9 @@ ccconv raws --type=assistant    # Assistant messages + tool_result
 
 ### Data Display
 
-- **Default**: Shows today's created/updated files with size, message count, and token usage
+- **talk**: Human-readable conversation format (default). Use `--watch` for real-time monitoring
+- **web**: REST API server + Vue.js dashboard with timeline sync, pane mode, and flow mode
+- **subagents**: List and statistics of subagents
 - **raws**: Outputs conversation data in JSON format (default: today's data only)
 - **projects**: Shows project list and summary (default: today's updates only)
 - **tokens**: Displays total token usage for the last 4 hours
@@ -169,7 +194,7 @@ Claude Code log data follows this structure:
 
 ## Requirements
 
-- Node.js
+- Bun
 - Claude Code installed (log files must exist in `~/.claude/projects/`)
 
 ## License

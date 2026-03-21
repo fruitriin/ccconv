@@ -28,8 +28,23 @@ bunx ccconv
 ### 基本コマンド
 
 ```bash
-# 今日のログファイル一覧と統計を表示
+# 今日の会話をtalk形式で表示（デフォルト）
 ccconv
+
+# ファイル監視（新しいメッセージをリアルタイム表示）
+ccconv talk --watch
+
+# 特定セッションだけwatch
+ccconv talk --watch --session=<id>
+
+# thinkingブロックも表示
+ccconv talk --thinking
+
+# ツール呼び出しも表示
+ccconv talk --tools
+
+# サブエージェントの会話も表示
+ccconv talk --subagents
 
 # 今日の会話データをJSONで出力（デフォルト）
 ccconv raws
@@ -60,6 +75,14 @@ ccconv projects --since=all
 
 # 直近4時間のトークン使用量を表示
 ccconv tokens
+
+# Web ダッシュボード（REST API + Vue.js フロントエンド）
+ccconv web
+
+# サブエージェント一覧
+ccconv subagents
+ccconv subagents --project=<name>
+ccconv subagents --session=<id>
 ```
 
 ### プロジェクト表示オプション
@@ -104,7 +127,9 @@ ccconv raws --type=assistant    # アシスタントメッセージ + tool_resul
 
 ### データ表示
 
-- **デフォルト**: 今日作成・更新されたファイルの一覧、サイズ、メッセージ数、トークン使用量を表示
+- **talk**: 会話風の読みやすい形式で表示（デフォルト）。`--watch` でリアルタイム監視
+- **web**: REST API サーバー + Vue.js ダッシュボード。タイムライン同期、ペインモード、フローモード対応
+- **subagents**: サブエージェントの一覧と統計
 - **raws**: 会話データを JSON フォーマットで出力（デフォルト：今日のデータのみ）
 - **projects**: プロジェクトの一覧とサマリを表示（デフォルト：今日更新分のみ）
 - **tokens**: 直近 4 時間のトークン使用量の合計を表示
@@ -169,7 +194,7 @@ Claude Code のログデータは以下の構造になっています:
 
 ## 必要環境
 
-- Node.js
+- Bun
 - Claude Code がインストールされていること（ログファイルが `~/.claude/projects/` に存在すること）
 
 ## ライセンス
