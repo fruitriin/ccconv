@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { Entry } from '../composables/useConversations'
+import {
+  getTextContent,
+  isToolUse,
+  getToolNames,
+  formatTime,
+} from '../composables/useMessageUtils'
 
 const props = defineProps<{
   entries: Entry[]
@@ -16,36 +22,6 @@ function toggleExpand() {
 function getModel(): string {
   const assistantEntry = props.entries.find(e => e.type === 'assistant' && e.message?.model)
   return assistantEntry?.message?.model?.split('-').slice(0, 2).join('-') ?? 'unknown'
-}
-
-function formatTime(iso?: string): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-}
-
-function getTextContent(entry: Entry): string {
-  const content = entry.message?.content
-  if (!content) return ''
-  if (typeof content === 'string') return content
-  if (Array.isArray(content)) {
-    return content
-      .filter(c => c.type === 'text')
-      .map(c => c.text ?? '')
-      .join('\n')
-  }
-  return ''
-}
-
-function isToolUse(entry: Entry): boolean {
-  const content = entry.message?.content
-  if (!Array.isArray(content)) return false
-  return content.some(c => c.type === 'tool_use')
-}
-
-function getToolNames(entry: Entry): string[] {
-  const content = entry.message?.content
-  if (!Array.isArray(content)) return []
-  return content.filter(c => c.type === 'tool_use').map(c => c.name ?? '(tool)')
 }
 
 function isToolResult(entry: Entry): boolean {
