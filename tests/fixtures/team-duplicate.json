@@ -1,0 +1,184 @@
+{
+  "agent_a53": [
+    {
+      "type": "user",
+      "timestamp": "2026-03-20T15:14:16.475Z",
+      "uuid": "af719a70-7949-4b92-b605-8e8d02c798fc",
+      "agentId": "a53c6de7baf476935",
+      "message": {
+        "content": "<teammate-message teammate_id=\"team-lead\" summary="
+      }
+    },
+    {
+      "type": "assistant",
+      "timestamp": "2026-03-20T15:14:20.469Z",
+      "uuid": "38c62e73-f79d-48e6-9633-dcaad8346487",
+      "agentId": "a53c6de7baf476935",
+      "message": {
+        "content": [
+          {
+            "type": "text",
+            "text": "ep4.mdのres 30-50を読み込みます。"
+          }
+        ]
+      }
+    },
+    {
+      "type": "assistant",
+      "timestamp": "2026-03-20T15:14:21.390Z",
+      "uuid": "84a9665e-553f-4d4f-9a2e-4482be072dc9",
+      "agentId": "a53c6de7baf476935",
+      "message": {
+        "content": [
+          {
+            "type": "tool_use"
+          }
+        ]
+      }
+    },
+    {
+      "type": "progress",
+      "timestamp": "2026-03-20T15:14:21.393Z",
+      "uuid": "7392ad62-34f0-494d-830c-6eb7b65f2866",
+      "agentId": "a53c6de7baf476935",
+      "message": {}
+    },
+    {
+      "type": "assistant",
+      "timestamp": "2026-03-20T15:14:21.394Z",
+      "uuid": "b7ba5fd6-170b-4eaf-b01f-4bcf2d062787",
+      "agentId": "a53c6de7baf476935",
+      "message": {
+        "content": [
+          {
+            "type": "tool_use"
+          }
+        ]
+      }
+    },
+    {
+      "type": "progress",
+      "timestamp": "2026-03-20T15:14:21.417Z",
+      "uuid": "79678afc-51ab-4d0f-9fc5-517a0ea2d654",
+      "agentId": "a53c6de7baf476935",
+      "message": {}
+    },
+    {
+      "type": "user",
+      "timestamp": "2026-03-20T15:14:21.417Z",
+      "uuid": "4c3d32d4-ab78-4765-a439-7206846fa1b1",
+      "agentId": "a53c6de7baf476935",
+      "message": {
+        "content": [
+          {
+            "type": "tool_result"
+          }
+        ]
+      }
+    },
+    {
+      "type": "user",
+      "timestamp": "2026-03-20T15:14:21.803Z",
+      "uuid": "6533be10-92a1-44ae-8138-b4aa90edcfaa",
+      "agentId": "a53c6de7baf476935",
+      "message": {
+        "content": [
+          {
+            "type": "tool_result"
+          }
+        ]
+      }
+    }
+  ],
+  "agent_a1f": [
+    {
+      "type": "user",
+      "timestamp": "2026-03-20T15:14:16.475Z",
+      "uuid": "af719a70-7949-4b92-b605-8e8d02c798fc",
+      "agentId": "a1f7c8ce06589d971",
+      "message": {
+        "content": "<teammate-message teammate_id=\"team-lead\" summary="
+      }
+    },
+    {
+      "type": "assistant",
+      "timestamp": "2026-03-20T15:14:20.469Z",
+      "uuid": "38c62e73-f79d-48e6-9633-dcaad8346487",
+      "agentId": "a1f7c8ce06589d971",
+      "message": {
+        "content": [
+          {
+            "type": "text",
+            "text": "ep4.mdのres 30-50を読み込みます。"
+          }
+        ]
+      }
+    },
+    {
+      "type": "assistant",
+      "timestamp": "2026-03-20T15:14:21.390Z",
+      "uuid": "84a9665e-553f-4d4f-9a2e-4482be072dc9",
+      "agentId": "a1f7c8ce06589d971",
+      "message": {
+        "content": [
+          {
+            "type": "tool_use"
+          }
+        ]
+      }
+    },
+    {
+      "type": "progress",
+      "timestamp": "2026-03-20T15:14:21.393Z",
+      "uuid": "7392ad62-34f0-494d-830c-6eb7b65f2866",
+      "agentId": "a1f7c8ce06589d971",
+      "message": {}
+    },
+    {
+      "type": "assistant",
+      "timestamp": "2026-03-20T15:14:21.394Z",
+      "uuid": "b7ba5fd6-170b-4eaf-b01f-4bcf2d062787",
+      "agentId": "a1f7c8ce06589d971",
+      "message": {
+        "content": [
+          {
+            "type": "tool_use"
+          }
+        ]
+      }
+    },
+    {
+      "type": "progress",
+      "timestamp": "2026-03-20T15:14:21.417Z",
+      "uuid": "79678afc-51ab-4d0f-9fc5-517a0ea2d654",
+      "agentId": "a1f7c8ce06589d971",
+      "message": {}
+    },
+    {
+      "type": "user",
+      "timestamp": "2026-03-20T15:14:21.417Z",
+      "uuid": "4c3d32d4-ab78-4765-a439-7206846fa1b1",
+      "agentId": "a1f7c8ce06589d971",
+      "message": {
+        "content": [
+          {
+            "type": "tool_result"
+          }
+        ]
+      }
+    },
+    {
+      "type": "user",
+      "timestamp": "2026-03-20T15:14:21.803Z",
+      "uuid": "6533be10-92a1-44ae-8138-b4aa90edcfaa",
+      "agentId": "a1f7c8ce06589d971",
+      "message": {
+        "content": [
+          {
+            "type": "tool_result"
+          }
+        ]
+      }
+    }
+  ]
+}

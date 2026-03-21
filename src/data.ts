@@ -166,14 +166,33 @@ export function getAllData(opts: DataOptions = {}): Entry[] {
             if (existsSync(subagentsDir)) {
               try {
                 const agentFiles = readdirSync(subagentsDir).filter((f) => f.endsWith(".jsonl"));
-                for (const agentFile of agentFiles) {
+
+                // ファイルサイズ降順にソート（最も多くのエントリを持つファイルを先に処理）
+                const agentFilesWithSize = agentFiles.map((f) => {
+                  try {
+                    return { name: f, size: statSync(join(subagentsDir, f)).size };
+                  } catch {
+                    return { name: f, size: 0 };
+                  }
+                }).sort((a, b) => b.size - a.size);
+
+                // UUID で重複排除しながら読み込み
+                // 大きいファイル（フルセット）を先に処理し、コンパクト版のエントリはスキップ
+                const uuidSeen = new Set<string>();
+                for (const { name: agentFile } of agentFilesWithSize) {
                   const agentId = agentFile.replace(".jsonl", "").replace(/^agent-/, "");
                   const agentFilePath = join(subagentsDir, agentFile);
-                  allData.push(...readJsonlFile(agentFilePath, projectDir, agentFile, {
+                  const entries = readJsonlFile(agentFilePath, projectDir, agentFile, {
                     _isSubagent: true,
                     _parentSession: sessionId,
                     _agentId: agentId,
-                  }));
+                  });
+
+                  for (const e of entries) {
+                    if (e.uuid && uuidSeen.has(e.uuid)) continue; // 重複スキップ
+                    if (e.uuid) uuidSeen.add(e.uuid);
+                    allData.push(e);
+                  }
                 }
               } catch {}
             }
