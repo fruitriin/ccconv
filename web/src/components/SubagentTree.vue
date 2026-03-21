@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import type { Entry } from '../composables/useConversations'
 import {
   getTextContent,
@@ -17,6 +17,10 @@ const props = withDefaults(defineProps<{
 })
 
 const expanded = ref(props.defaultExpanded)
+
+watch(() => props.defaultExpanded, (val) => {
+  expanded.value = val
+})
 
 function toggleExpand() {
   expanded.value = !expanded.value
