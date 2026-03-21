@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node ccconv.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "bun build ccconv.ts --outfile ccconv.js --target node && sed -i '' '1s|#!/usr/bin/env bun|#!/usr/bin/env node|' ccconv.js",
+    "build": "bun build ccconv.ts --outfile ccconv.js --target bun",
     "prepublishOnly": "bun run build"
   },
   "keywords": [
@@ -23,7 +23,7 @@
   "author": "",
   "license": "MIT",
   "engines": {
-    "node": ">=14.0.0"
+    "bun": ">=1.0.0"
   },
   "files": [
     "ccconv.js",
