@@ -25,7 +25,7 @@ interface ConvItem {
 
 type Segment =
   | { type: 'main'; items: ConvItem[] }
-  | { type: 'parallel'; groups: PaneGroup[] }
+  | { type: 'parallel'; groups: PaneGroup[]; mainItems?: ConvItem[] }
   | { type: 'single-agent'; group: SubagentGroup }
 
 interface PaneGroup {
@@ -155,12 +155,9 @@ const segments = computed<Segment[]>(() => {
     return ta.localeCompare(tb)
   })
 
-  // 現在積み上げているメインアイテム
   let currentMainItems: ConvItem[] = []
-
-  // 並列グループを判定してセグメント化
-  // サブエージェントグループが複数連続し、タイムスタンプが重複する場合は parallel
   let pendingGroups: GroupRange[] = []
+  let parallelMainItems: ConvItem[] = []
 
   function flushMainItems() {
     if (currentMainItems.length > 0) {
@@ -169,9 +166,9 @@ const segments = computed<Segment[]>(() => {
     }
   }
 
-  function flushPendingGroups() {
+  function flushPending() {
     if (pendingGroups.length === 0) return
-    if (pendingGroups.length === 1) {
+    if (pendingGroups.length === 1 && parallelMainItems.length === 0) {
       result.push({
         type: 'single-agent',
         group: { agentId: pendingGroups[0].agentId, entries: pendingGroups[0].entries },
@@ -185,44 +182,66 @@ const segments = computed<Segment[]>(() => {
           model: getGroupModel(gr.entries),
           description: getGroupDescription(gr.entries),
         })),
+        mainItems: parallelMainItems.length > 0 ? [...parallelMainItems] : undefined,
       })
     }
     pendingGroups = []
+    parallelMainItems = []
+  }
+
+  // Team 対応: メインが pending サブエージェントと時間的に重複するか
+  function mainOverlapsWithPending(ts: string): boolean {
+    if (!ts || pendingGroups.length === 0) return false
+    return pendingGroups.some(pg => ts >= pg.start && ts <= pg.end)
   }
 
   for (const event of allEvents) {
     if (event.kind === 'main') {
-      // メインアイテムが来たら、溜まっているグループを先にフラッシュ
-      flushPendingGroups()
-      currentMainItems.push(event.item)
+      const ts = event.item.entry?.timestamp ?? ''
+      if (mainOverlapsWithPending(ts)) {
+        // メインがサブエージェントと並列（Team パターン）
+        parallelMainItems.push(event.item)
+      } else {
+        // メインが単独
+        if (pendingGroups.length > 0) {
+          flushPending()
+        }
+        currentMainItems.push(event.item)
+      }
     } else {
-      // グループが来たら、溜まっているメインアイテムをフラッシュ
-      flushMainItems()
-
-      // 既存の pending グループと時間的に重複するかチェック
       const gr = event.range
+
       if (pendingGroups.length === 0) {
+        // 現在のメインアイテムがこのグループと重複するか
+        const mainOverlaps = currentMainItems.some(item =>
+          item.entry?.timestamp && rangesOverlap(item.entry.timestamp, item.entry.timestamp, gr.start, gr.end)
+        )
+        if (mainOverlaps) {
+          parallelMainItems.push(...currentMainItems)
+          currentMainItems = []
+        } else {
+          flushMainItems()
+        }
         pendingGroups.push(gr)
       } else {
-        // 最後の pending グループと重複チェック
-        const lastGr = pendingGroups[pendingGroups.length - 1]
-        // 重複: 少なくとも一つの pending グループと重複していれば並列
         const overlaps = pendingGroups.some(pg =>
           rangesOverlap(pg.start, pg.end, gr.start, gr.end)
         )
         if (overlaps) {
           pendingGroups.push(gr)
         } else {
-          // 重複しない → 今までの pending をフラッシュして新規開始
-          flushPendingGroups()
+          flushPending()
           pendingGroups.push(gr)
         }
       }
     }
   }
 
+  // 残りをフラッシュ
+  if (pendingGroups.length > 0) {
+    flushPending()
+  }
   flushMainItems()
-  flushPendingGroups()
 
   return result
 })
@@ -260,10 +279,39 @@ function paneGridClass(count: number): string {
       <!-- 並列サブエージェント = ペイン分割 -->
       <div
         v-else-if="seg.type === 'parallel'"
-        :class="paneGridClass(seg.groups.length)"
+        :class="paneGridClass(seg.groups.length + (seg.mainItems?.length ? 1 : 0))"
         class=""
         :style="flowMode ? {} : { minHeight: '15rem' }"
       >
+        <!-- メインペイン（Team パターン時） -->
+        <div
+          v-if="seg.mainItems && seg.mainItems.length > 0"
+          class="border border-accent/40 rounded-md flex flex-col min-w-0"
+          :class="flowMode ? '' : 'flex-1 overflow-hidden'"
+        >
+          <div class="px-2 py-1.5 bg-accent/10 text-xs text-accent font-semibold flex-shrink-0">
+            👑 Main
+          </div>
+          <div
+            class="p-2 flex flex-col gap-1.5 bg-black/10"
+            :class="flowMode ? '' : 'flex-1 overflow-y-auto max-h-[50vh]'"
+          >
+            <div
+              v-for="item in seg.mainItems"
+              :key="getItemUuid(item)"
+              :data-uuid="getItemUuid(item)"
+              @click="emit('setAnchor', getItemUuid(item))"
+            >
+              <MessageBubble
+                v-if="item.entry"
+                :entry="item.entry"
+                :search-text="searchText ?? ''"
+                :idx="0"
+              />
+            </div>
+          </div>
+        </div>
+        <!-- サブエージェントペイン -->
         <div
           v-for="pane in seg.groups"
           :key="pane.agentId"
