@@ -105,6 +105,7 @@ const displayItems = computed<ConvItem[]>(() => {
           v-else-if="item.type === 'subagent' && item.group"
           :entries="item.group.entries"
           :agent-id="item.group.agentId"
+          :default-expanded="state.filters.subagents === 'expanded'"
         />
       </template>
     </template>

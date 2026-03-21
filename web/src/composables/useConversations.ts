@@ -69,13 +69,15 @@ export interface Entry {
   _agentId?: string
 }
 
+export type SubagentMode = 'hidden' | 'collapsed' | 'expanded'
+
 export interface Filters {
   user: boolean
   assistant: boolean
   tools: boolean
   thinking: boolean
   hooks: boolean
-  subagents: boolean
+  subagents: SubagentMode
 }
 
 const state = reactive({
@@ -93,7 +95,7 @@ const state = reactive({
     tools: false,
     thinking: false,
     hooks: false,
-    subagents: true,
+    subagents: 'collapsed' as SubagentMode,
   } as Filters,
 })
 
@@ -115,7 +117,7 @@ function isToolResultEntry(entry: Entry): boolean {
 
 const filteredConversations = computed(() => {
   return state.conversations.filter(entry => {
-    if (entry._isSubagent) return state.filters.subagents
+    if (entry._isSubagent) return state.filters.subagents !== 'hidden'
     if (isHook(entry)) return state.filters.hooks
     if (isToolResultEntry(entry)) return state.filters.tools
     if (entry.type === 'user') return state.filters.user

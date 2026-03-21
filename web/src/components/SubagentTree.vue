@@ -8,12 +8,15 @@ import {
   formatTime,
 } from '../composables/useMessageUtils'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   entries: Entry[]
   agentId: string
-}>()
+  defaultExpanded?: boolean
+}>(), {
+  defaultExpanded: false,
+})
 
-const expanded = ref(false)
+const expanded = ref(props.defaultExpanded)
 
 function toggleExpand() {
   expanded.value = !expanded.value
