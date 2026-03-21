@@ -25,12 +25,24 @@ const props = defineProps<{
   idx: number
 }>()
 
-const { isHook, isToolResultEntry } = useConversations()
+const { state, isHook, isToolResultEntry } = useConversations()
 
 // 折りたたみ状態（このバブル内でのみ管理）
+// filters の TriState が 'expanded' なら初期展開
 const expandedThinking = ref(false)
 const expandedSkill = ref(false)
 const expandedToolResults = ref<Set<number>>(new Set())
+
+// filters の状態に応じて初期展開するかを判定
+function isToolResultExpanded(tri: number): boolean {
+  if (state.filters.tools === 'expanded') return true
+  return expandedToolResults.value.has(tri)
+}
+
+function isThinkingExpanded(): boolean {
+  if (state.filters.thinking === 'expanded') return true
+  return expandedThinking.value
+}
 
 function toggleThinking() {
   expandedThinking.value = !expandedThinking.value
@@ -82,10 +94,10 @@ function isEmpty(): boolean {
         <span class="text-text-dim font-mono">{{ tr.toolUseId.slice(0, 12) || 'result' }}</span>
         <span class="text-text-dim">{{ formatTime(entry.timestamp) }}</span>
         <span class="text-text-dim">{{ tr.text.length }}文字</span>
-        <span class="ml-auto text-text-dim">{{ expandedToolResults.has(tri) ? '▾' : '▸' }}</span>
+        <span class="ml-auto text-text-dim">{{ isToolResultExpanded(tri) ? '▾' : '▸' }}</span>
       </button>
       <div
-        v-if="expandedToolResults.has(tri)"
+        v-if="isToolResultExpanded(tri)"
         class="mt-1 whitespace-pre-wrap break-words text-text-dim text-[12px] max-h-[40vh] overflow-y-auto bg-black/30 rounded p-2"
       >{{ tr.text }}</div>
     </div>
@@ -102,13 +114,13 @@ function isEmpty(): boolean {
     >
       <span>💭</span>
       <span class="italic text-text-dim">
-        {{ expandedThinking
+        {{ isThinkingExpanded()
           ? '(thinking — クリックで折りたたむ)'
           : (getThinkingItems(entry)[0]?.thinking?.slice(0, 100) ?? '') + '...' }}
       </span>
-      <span class="ml-auto text-text-dim">{{ expandedThinking ? '▾' : '▸' }}</span>
+      <span class="ml-auto text-text-dim">{{ isThinkingExpanded() ? '▾' : '▸' }}</span>
     </button>
-    <div v-if="expandedThinking" class="mt-1.5 italic text-text-dim whitespace-pre-wrap break-words text-[12px]">
+    <div v-if="isThinkingExpanded()" class="mt-1.5 italic text-text-dim whitespace-pre-wrap break-words text-[12px]">
       <div v-for="(t, ti) in getThinkingItems(entry)" :key="ti">
         {{ t.thinking }}
       </div>

@@ -69,15 +69,15 @@ export interface Entry {
   _agentId?: string
 }
 
-export type SubagentMode = 'hidden' | 'collapsed' | 'expanded'
+export type TriState = 'hidden' | 'collapsed' | 'expanded'
 
 export interface Filters {
   user: boolean
   assistant: boolean
-  tools: boolean
-  thinking: boolean
+  tools: TriState
+  thinking: TriState
   hooks: boolean
-  subagents: SubagentMode
+  subagents: TriState
 }
 
 const state = reactive({
@@ -92,10 +92,10 @@ const state = reactive({
   filters: {
     user: true,
     assistant: true,
-    tools: false,
-    thinking: false,
+    tools: 'hidden' as TriState,
+    thinking: 'hidden' as TriState,
     hooks: false,
-    subagents: 'collapsed' as SubagentMode,
+    subagents: 'collapsed' as TriState,
   } as Filters,
 })
 
@@ -119,7 +119,7 @@ const filteredConversations = computed(() => {
   return state.conversations.filter(entry => {
     if (entry._isSubagent) return state.filters.subagents !== 'hidden'
     if (isHook(entry)) return state.filters.hooks
-    if (isToolResultEntry(entry)) return state.filters.tools
+    if (isToolResultEntry(entry)) return state.filters.tools !== 'hidden'
     if (entry.type === 'user') return state.filters.user
     if (entry.type === 'assistant') {
       const content = entry.message?.content
@@ -128,8 +128,8 @@ const filteredConversations = computed(() => {
         const hasToolUse = content.some(c => c.type === 'tool_use')
         const hasThinking = content.some(c => c.type === 'thinking')
 
-        if (hasThinking && !hasText && !hasToolUse) return state.filters.thinking
-        if (hasToolUse && !hasText) return state.filters.tools
+        if (hasThinking && !hasText && !hasToolUse) return state.filters.thinking !== 'hidden'
+        if (hasToolUse && !hasText) return state.filters.tools !== 'hidden'
         return state.filters.assistant
       }
       return state.filters.assistant

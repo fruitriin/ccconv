@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useConversations } from '../composables/useConversations'
-import type { SubagentMode } from '../composables/useConversations'
+import type { TriState, Filters } from '../composables/useConversations'
 
 const { state, setSinceFilter } = useConversations()
 
@@ -8,34 +8,37 @@ function onSinceChange(e: Event) {
   setSinceFilter((e.target as HTMLSelectElement).value)
 }
 
-function toggleFilter(key: keyof typeof state.filters) {
-  if (key === 'subagents') return // handled by cycleSubagentMode
-  state.filters[key] = !state.filters[key] as any
+function toggleBool(key: 'user' | 'assistant' | 'hooks') {
+  state.filters[key] = !state.filters[key]
 }
 
-const subagentModes: { mode: SubagentMode; icon: string; label: string }[] = [
-  { mode: 'hidden', icon: '🧩', label: '非表示' },
-  { mode: 'collapsed', icon: '🧩', label: '折りたたみ' },
-  { mode: 'expanded', icon: '🧩', label: '展開' },
-]
-
-function cycleSubagentMode() {
-  const order: SubagentMode[] = ['hidden', 'collapsed', 'expanded']
-  const idx = order.indexOf(state.filters.subagents)
-  state.filters.subagents = order[(idx + 1) % 3]
+function cycleTriState(key: 'tools' | 'thinking' | 'subagents') {
+  const order: TriState[] = ['hidden', 'collapsed', 'expanded']
+  const idx = order.indexOf(state.filters[key])
+  state.filters[key] = order[(idx + 1) % 3]
 }
 
-function subagentButtonLabel(): string {
-  const m = subagentModes.find(s => s.mode === state.filters.subagents)
-  return m ? `${m.icon} ${m.label}` : '🧩'
+function triStateClass(val: TriState): string {
+  if (val === 'hidden') return 'bg-surface2 text-text-dim'
+  if (val === 'collapsed') return 'bg-[#8b4560] text-white'
+  return 'bg-accent text-white'
 }
 
-const boolButtons: Array<{ key: Exclude<keyof typeof state.filters, 'subagents'>; icon: string; label: string }> = [
+function triStateLabel(icon: string, name: string, val: TriState): string {
+  const suffix = val === 'hidden' ? '非表示' : val === 'collapsed' ? '折りたたみ' : '展開'
+  return `${icon} ${name}: ${suffix}`
+}
+
+const boolButtons: Array<{ key: 'user' | 'assistant' | 'hooks'; icon: string; label: string }> = [
   { key: 'user', icon: '👤', label: 'User' },
   { key: 'assistant', icon: '🤖', label: 'Assistant' },
+  { key: 'hooks', icon: '📡', label: 'Hooks' },
+]
+
+const triButtons: Array<{ key: 'tools' | 'thinking' | 'subagents'; icon: string; label: string }> = [
   { key: 'tools', icon: '🔧', label: 'Tools' },
   { key: 'thinking', icon: '💭', label: 'Thinking' },
-  { key: 'hooks', icon: '📡', label: 'Hooks' },
+  { key: 'subagents', icon: '🧩', label: 'Subagents' },
 ]
 </script>
 
@@ -53,10 +56,11 @@ const boolButtons: Array<{ key: Exclude<keyof typeof state.filters, 'subagents'>
     <div class="flex items-center gap-1.5 flex-wrap">
       <label class="text-text-dim text-xs whitespace-nowrap">表示</label>
       <div class="flex gap-1.5 flex-wrap">
+        <!-- Boolean トグル -->
         <button
           v-for="btn in boolButtons"
           :key="btn.key"
-          @click="toggleFilter(btn.key)"
+          @click="toggleBool(btn.key)"
           class="px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer border-none"
           :class="state.filters[btn.key]
             ? 'bg-accent text-white'
@@ -64,16 +68,16 @@ const boolButtons: Array<{ key: Exclude<keyof typeof state.filters, 'subagents'>
         >
           {{ btn.icon }} {{ btn.label }}
         </button>
+        <!-- 3状態トグル -->
         <button
-          @click="cycleSubagentMode"
+          v-for="btn in triButtons"
+          :key="btn.key"
+          @click="cycleTriState(btn.key)"
           class="px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer border-none"
-          :class="state.filters.subagents === 'hidden'
-            ? 'bg-surface2 text-text-dim'
-            : state.filters.subagents === 'expanded'
-              ? 'bg-accent text-white'
-              : 'bg-[#8b4560] text-white'"
+          :class="triStateClass(state.filters[btn.key])"
+          :title="triStateLabel(btn.icon, btn.label, state.filters[btn.key])"
         >
-          {{ subagentButtonLabel() }}
+          {{ btn.icon }} {{ btn.label }}
         </button>
       </div>
     </div>
