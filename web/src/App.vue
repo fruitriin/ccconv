@@ -28,9 +28,19 @@ onMounted(async () => {
       <ProjectTree />
     </aside>
     <!-- メインエリア -->
-    <main class="flex-1 flex flex-col overflow-hidden bg-bg">
+    <main class="flex-1 flex flex-col overflow-hidden bg-bg relative">
       <FilterBar />
       <ConversationView />
+      <!-- フローティングスピナー -->
+      <div
+        v-if="state.loading"
+        class="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
+      >
+        <div class="flex items-center gap-2.5 bg-surface2 px-4 py-2.5 rounded-lg shadow-lg border border-[#333] pointer-events-auto">
+          <div class="w-5 h-5 border-2 border-[#333] border-t-accent rounded-full" style="animation: spin 0.6s linear infinite"></div>
+          <span class="text-text-dim text-sm">読込中...</span>
+        </div>
+      </div>
     </main>
   </div>
 </template>

@@ -204,12 +204,16 @@ function pushUrl() {
   }
 }
 
-function selectProject(name: string) {
+async function selectProject(name: string) {
   state.selectedProject = name
   state.selectedSession = null
   state.conversations = []
   pushUrl()
-  fetchSessions(name)
+  await fetchSessions(name)
+  // 最新セッションを自動選択
+  if (state.sessions.length > 0) {
+    selectSession(state.sessions[0].sessionId)
+  }
 }
 
 function selectSession(sessionId: string) {
