@@ -186,18 +186,34 @@ export function getAllData(opts: DataOptions = {}): Entry[] {
   return allData;
 }
 
-export function applySinceFilter(data: Entry[], sinceFilter: string | null): Entry[] {
-  if (sinceFilter === "all") return data;
-  let sinceDate: Date;
-  if (sinceFilter === null) {
-    sinceDate = new Date(today);
-  } else {
-    sinceDate = new Date(sinceFilter);
-    if (isNaN(sinceDate.getTime())) {
-      console.log(`⚠️ 無効な日付形式: ${sinceFilter}`);
-      return [];
-    }
+function resolveSinceDate(sinceFilter: string | null): Date | null {
+  if (sinceFilter === "all") return null;
+  if (sinceFilter === null) return new Date(today);
+
+  // 相対期間の解決
+  const now = new Date();
+  if (sinceFilter === "3days") {
+    const d = new Date(now); d.setDate(d.getDate() - 3); return d;
   }
+  if (sinceFilter === "week") {
+    const d = new Date(now); d.setDate(d.getDate() - 7); return d;
+  }
+  if (sinceFilter === "month") {
+    const d = new Date(now); d.setMonth(d.getMonth() - 1); return d;
+  }
+  if (sinceFilter === "today") return new Date(today);
+
+  const d = new Date(sinceFilter);
+  if (isNaN(d.getTime())) {
+    console.log(`⚠️ 無効な日付形式: ${sinceFilter}`);
+    return new Date(today); // フォールバック
+  }
+  return d;
+}
+
+export function applySinceFilter(data: Entry[], sinceFilter: string | null): Entry[] {
+  const sinceDate = resolveSinceDate(sinceFilter);
+  if (!sinceDate) return data;
   return data.filter((e) => {
     if (!e.timestamp) return false;
     return new Date(e.timestamp) >= sinceDate;
@@ -235,9 +251,8 @@ export function getProjects(opts: ProjectsGetOptions = {}): ProjectSummary[] {
         const filePath = join(fp, file);
         const stats = statSync(filePath);
 
-        if (sinceFilter !== "all") {
-          const sinceDate = sinceFilter ? new Date(sinceFilter) : new Date(today);
-          if (isNaN(sinceDate.getTime())) continue;
+        const sinceDate = resolveSinceDate(sinceFilter);
+        if (sinceDate) {
           const fileDate = new Date(stats.mtime.toISOString().split("T")[0]);
           if (fileDate < sinceDate) continue;
         }
@@ -337,22 +352,14 @@ export function getSubagents(opts: SubagentsGetOptions = {}): (SubagentInfo & { 
         if (agentFiles.length === 0) continue;
 
         // sinceFilter チェック
-        if (sinceFilter && sinceFilter !== "all") {
-          const sinceDate = new Date(sinceFilter);
+        const sinceDate = resolveSinceDate(sinceFilter);
+        if (sinceDate) {
           const sessionJsonl = join(fp, sd.name + ".jsonl");
           if (existsSync(sessionJsonl)) {
             const stats = statSync(sessionJsonl);
             if (new Date(stats.mtime.toISOString().split("T")[0]) < sinceDate) continue;
           }
-        } else if (!sinceFilter) {
-          // デフォルト: 今日のみ
-          const sessionJsonl = join(fp, sd.name + ".jsonl");
-          if (existsSync(sessionJsonl)) {
-            const stats = statSync(sessionJsonl);
-            if (stats.mtime.toISOString().split("T")[0] !== today) continue;
-          }
         }
-
         for (const af of agentFiles) {
           const agentId = af.replace("agent-", "").replace(".jsonl", "");
           const metaPath = join(subagentsDir, af.replace(".jsonl", ".meta.json"));
