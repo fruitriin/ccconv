@@ -126,8 +126,33 @@ function formatTime(iso?: string): string {
   return new Date(iso).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
+const LONG_MESSAGE_THRESHOLD = 300 // 文字数
+const LONG_MESSAGE_LINES = 5      // 行数
+
+function isLongMessage(entry: Entry): boolean {
+  const text = getTextContent(entry)
+  return text.length > LONG_MESSAGE_THRESHOLD || text.split('\n').length > LONG_MESSAGE_LINES
+}
+
+function getPreview(text: string): string {
+  const lines = text.split('\n')
+  if (lines.length > LONG_MESSAGE_LINES) {
+    return lines.slice(0, LONG_MESSAGE_LINES).join('\n')
+  }
+  return text.slice(0, LONG_MESSAGE_THRESHOLD)
+}
+
 // 折りたたみ状態管理
 const collapsedThinking = ref<Set<number>>(new Set())
+const expandedLong = ref<Set<number>>(new Set())
+
+function toggleLong(idx: number) {
+  if (expandedLong.value.has(idx)) {
+    expandedLong.value.delete(idx)
+  } else {
+    expandedLong.value.add(idx)
+  }
+}
 
 function toggleThinking(idx: number) {
   if (collapsedThinking.value.has(idx)) {
@@ -285,11 +310,35 @@ function highlightText(text: string, search: string): string {
             </div>
 
             <!-- テキストコンテンツ -->
-            <div
-              v-if="getTextContent(item.entry)"
-              class="whitespace-pre-wrap break-words text-text"
-              v-html="highlightText(getTextContent(item.entry), state.searchText)"
-            ></div>
+            <template v-if="getTextContent(item.entry)">
+              <!-- 長いメッセージ（折りたたみ） -->
+              <template v-if="isLongMessage(item.entry) && !expandedLong.has(idx)">
+                <div
+                  class="whitespace-pre-wrap break-words text-text"
+                  v-html="highlightText(getPreview(getTextContent(item.entry)), state.searchText)"
+                ></div>
+                <button
+                  class="mt-1 text-accent text-xs cursor-pointer bg-transparent border-none p-0 hover:underline"
+                  @click="toggleLong(idx)"
+                >
+                  ▸ 続きを表示（{{ getTextContent(item.entry).length }}文字）
+                </button>
+              </template>
+              <!-- 通常 or 展開済み -->
+              <template v-else>
+                <div
+                  class="whitespace-pre-wrap break-words text-text"
+                  v-html="highlightText(getTextContent(item.entry), state.searchText)"
+                ></div>
+                <button
+                  v-if="isLongMessage(item.entry)"
+                  class="mt-1 text-accent text-xs cursor-pointer bg-transparent border-none p-0 hover:underline"
+                  @click="toggleLong(idx)"
+                >
+                  ▾ 折りたたむ
+                </button>
+              </template>
+            </template>
 
             <!-- ツール実行（テキストなし） -->
             <div v-if="hasOnlyToolUse(item.entry)" class="flex flex-col gap-1 mt-1">
