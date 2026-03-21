@@ -320,7 +320,8 @@ function buildTimeSlots(groups: PaneGroup[], mainItems?: ConvItem[]): TimeSlot[]
               <div
                 v-for="(entries, pIdx) in slot.entries"
                 :key="pIdx"
-                class="p-1 border-r border-white/5 last:border-r-0 min-h-8"
+                class="border-r border-white/5 last:border-r-0"
+                :class="flowMode ? 'p-2 min-h-10' : 'p-1 min-h-8'"
               >
                 <template v-if="entries && entries.length > 0">
                   <div
@@ -328,21 +329,23 @@ function buildTimeSlots(groups: PaneGroup[], mainItems?: ConvItem[]): TimeSlot[]
                     :key="entry.uuid ?? entry.timestamp"
                     :data-uuid="entry.uuid"
                     @click="entry.uuid && emit('setAnchor', entry.uuid)"
-                    class="rounded p-1.5 text-[12px] mb-1 last:mb-0"
+                    class="rounded mb-1.5 last:mb-0"
                     :class="[
                       anchorUuid === entry.uuid ? 'ring-1 ring-accent' : '',
+                      flowMode ? 'p-2.5 text-[13px]' : 'p-1.5 text-[12px]',
                       entry.type === 'user' ? 'bg-[rgba(26,58,92,0.6)]' : 'bg-[rgba(42,42,62,0.8)]'
                     ]"
                   >
-                    <div class="flex items-center gap-1.5 mb-1 text-[10px]">
-                      <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Asst' }}</span>
+                    <div class="flex items-center gap-1.5 mb-1" :class="flowMode ? 'text-[11px]' : 'text-[10px]'">
+                      <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Assistant' }}</span>
+                      <span class="text-text-dim">{{ formatTime(entry.timestamp) }}</span>
                       <Tooltip v-if="isToolUse(entry)" :text="getToolNames(entry).join(', ')">
-                        <span class="text-[#f0a500] text-[10px] truncate max-w-[70%] inline-block">
+                        <span class="text-[#f0a500] truncate max-w-[70%] inline-block" :class="flowMode ? 'text-[11px]' : 'text-[10px]'">
                           🔧 {{ getToolNames(entry).join(', ') }}
                         </span>
                       </Tooltip>
                     </div>
-                    <div v-if="getTextContent(entry)" class="whitespace-pre-wrap break-words leading-relaxed text-text text-[12px]">
+                    <div v-if="getTextContent(entry)" class="whitespace-pre-wrap break-words leading-relaxed text-text" :class="flowMode ? 'text-[13px]' : 'text-[12px]'">
                       {{ getTextContent(entry) }}
                     </div>
                     <div v-else-if="isToolUse(entry)" class="text-text-dim italic text-[11px]">
@@ -351,7 +354,7 @@ function buildTimeSlots(groups: PaneGroup[], mainItems?: ConvItem[]): TimeSlot[]
                   </div>
                 </template>
                 <!-- 空セル -->
-                <div v-else class="w-full h-full flex items-center justify-center">
+                <div v-else class="w-full h-full flex items-start justify-center pt-2">
                   <span class="text-white/10 text-xs select-none">—</span>
                 </div>
               </div>
