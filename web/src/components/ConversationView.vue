@@ -36,15 +36,59 @@ function setAnchor(uuid: string) {
   state.anchorUuid = uuid
 }
 
-// フィルタ変更時にアンカーへスクロール
+// フィルタ変更前に、現在画面内の先頭要素の uuid リストを記憶
+let visibleUuids: string[] = []
+
+function captureVisibleUuids() {
+  const container = containerRef.value
+  if (!container) return
+  const rect = container.getBoundingClientRect()
+  const elements = container.querySelectorAll<HTMLElement>('[data-uuid]')
+  visibleUuids = []
+  for (const el of elements) {
+    const elRect = el.getBoundingClientRect()
+    // 要素の上端がコンテナの表示範囲内にあるか
+    if (elRect.top >= rect.top && elRect.top < rect.bottom) {
+      visibleUuids.push(el.dataset.uuid!)
+    }
+  }
+}
+
+function findScrollTarget(): string | null {
+  // 1. 明示的アンカーが画面に存在するか
+  if (state.anchorUuid) {
+    const el = document.querySelector(`[data-uuid="${state.anchorUuid}"]`)
+    if (el) return state.anchorUuid
+  }
+
+  // 2. 記憶した画面内要素のうち、まだ存在するものを探す（上から順）
+  for (const uuid of visibleUuids) {
+    const el = document.querySelector(`[data-uuid="${uuid}"]`)
+    if (el) return uuid
+  }
+
+  // 3. 全要素を走査し、記憶した先頭要素のタイムスタンプに最も近い要素を探す
+  // （フォールバック: 何も見つからなければスクロールしない）
+  return null
+}
+
+// フィルタ変更時：watch は reactive 値の変更後・DOM 更新前に呼ばれる
+// → captureVisibleUuids() で旧DOMの画面内要素を取得できる
+// → nextTick() で新DOMに切り替わった後にスクロール先を探す
 watch(
-  () => [state.filters.tools, state.filters.thinking, state.filters.subagents, state.filters.hooks, state.filters.user, state.filters.assistant],
+  () => JSON.stringify([state.filters.tools, state.filters.thinking, state.filters.subagents, state.filters.hooks, state.filters.user, state.filters.assistant]),
   () => {
-    if (!state.anchorUuid) return
+    // 旧DOM がまだ残っている段階で画面内要素をキャプチャ
+    captureVisibleUuids()
+
+    // 新DOM に切り替わった後にスクロール
     nextTick(() => {
-      const el = document.querySelector(`[data-uuid="${state.anchorUuid}"]`)
-      if (el) {
-        el.scrollIntoView({ behavior: 'instant', block: 'center' })
+      const target = findScrollTarget()
+      if (target) {
+        const el = document.querySelector(`[data-uuid="${target}"]`)
+        if (el) {
+          el.scrollIntoView({ behavior: 'instant', block: 'start' })
+        }
       }
     })
   }
