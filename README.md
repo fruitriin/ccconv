@@ -11,7 +11,14 @@ Claude Code の会話ログをコマンドラインで扱うためのツール
 ## インストール
 
 ```bash
+# npm
 npm install --global ccconv
+
+# または npx で直接実行
+npx ccconv
+
+# Bun ユーザー
+bunx ccconv
 ```
 
 グローバルインストール後は `ccconv` コマンドとして使用できます。
@@ -22,75 +29,75 @@ npm install --global ccconv
 
 ```bash
 # 今日のログファイル一覧と統計を表示
-node ccconv.js
+ccconv
 
 # 今日の会話データをJSONで出力（デフォルト）
-node ccconv.js raws
+ccconv raws
 
 # 全会話データをJSONで出力
-node ccconv.js raws --since=all
+ccconv raws --since=all
 
 # 指定日以降の会話データをJSONで出力
-node ccconv.js raws --since=2024-08-20
+ccconv raws --since=2024-08-20
 
 # 指定プロジェクトのデータのみをJSONで出力
-node ccconv.js raws --project=ccconv
+ccconv raws --project=ccconv
 
 # 会話風の読みやすい形式で出力
-node ccconv.js raws --format=talk
+ccconv raws --format=talk
 
 # key: value形式のシンプルな出力
-node ccconv.js raws --format=plain
+ccconv raws --format=plain
 
 # 新しいメッセージから表示（逆順）
-node ccconv.js raws --reverse
+ccconv raws --reverse
 
 # 今日更新されたプロジェクト一覧を表示（デフォルト）
-node ccconv.js projects
+ccconv projects
 
 # 全プロジェクトの一覧とサマリを表示
-node ccconv.js projects --since=all
+ccconv projects --since=all
 
 # 直近4時間のトークン使用量を表示
-node ccconv.js tokens
+ccconv tokens
 ```
 
 ### プロジェクト表示オプション
 
 ```bash
 # コンパクトな1行形式で表示
-node ccconv.js projects --one-line
+ccconv projects --one-line
 
 # トークン数順でソート
-node ccconv.js projects --sort=tokens
+ccconv projects --sort=tokens
 
 # メッセージ数順でソート
-node ccconv.js projects --sort=messages
+ccconv projects --sort=messages
 
 # JSON形式で出力
-node ccconv.js projects --json
+ccconv projects --json
 ```
 
 ### データフィルタリング
 
 ```bash
 # 指定した列のみを出力
-node ccconv.js raws --column=timestamp,type,message.content
+ccconv raws --column=timestamp,type,message.content
 
 # 指定プロジェクトのデータのみを出力
-node ccconv.js raws --project=ccconv
+ccconv raws --project=ccconv
 
 # 出力形式の指定
-node ccconv.js raws --format=talk     # 会話風形式
-node ccconv.js raws --format=plain    # key: value形式
+ccconv raws --format=talk     # 会話風形式
+ccconv raws --format=plain    # key: value形式
 
 # 表示順の制御
-node ccconv.js raws --reverse         # 新しいメッセージから表示（逆順）
+ccconv raws --reverse         # 新しいメッセージから表示（逆順）
 
 # メッセージタイプでフィルタリング
-node ccconv.js raws --type=user          # ユーザーメッセージのみ（tool_result除外）
-node ccconv.js raws --type=userandtools # ユーザーメッセージ（tool_result含む）
-node ccconv.js raws --type=assistant    # アシスタントメッセージ + tool_result
+ccconv raws --type=user          # ユーザーメッセージのみ（tool_result除外）
+ccconv raws --type=userandtools # ユーザーメッセージ（tool_result含む）
+ccconv raws --type=assistant    # アシスタントメッセージ + tool_result
 ```
 
 ## 機能
@@ -128,16 +135,16 @@ node ccconv.js raws --type=assistant    # アシスタントメッセージ + to
 
 ```bash
 # 指定日以降のアシスタントメッセージのタイムスタンプとトークン使用量のみ表示
-node ccconv.js raws --since=2024-08-20 --column=timestamp,message.usage --type=assistant
+ccconv raws --since=2024-08-20 --column=timestamp,message.usage --type=assistant
 
 # 今日のプロジェクトをトークン数順で1行表示
-node ccconv.js projects --one-line --sort=tokens
+ccconv projects --one-line --sort=tokens
 
 # 全期間のセッションIDと作業ディレクトリのみ表示
-node ccconv.js raws --since=all --column=sessionId,cwd --type=user
+ccconv raws --since=all --column=sessionId,cwd --type=user
 
 # 最新の会話から会話風で表示
-node ccconv.js raws --format=talk --reverse
+ccconv raws --format=talk --reverse
 ```
 
 ## データ構造
