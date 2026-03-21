@@ -73,17 +73,18 @@ function findScrollTarget(): string | null {
   return null
 }
 
-// フィルタ変更時：watch は reactive 値の変更後・DOM 更新前に呼ばれる
-// → captureVisibleUuids() で旧DOMの画面内要素を取得できる
-// → nextTick() で新DOMに切り替わった後にスクロール先を探す
+// フィルタ変更時のスクロール保持
+// 意図的に flush: "pre"（デフォルト）を使用:
+//   1. watch コールバック時点では旧 DOM が残っている → captureVisibleUuids() で画面内要素を記憶
+//   2. nextTick() で新 DOM に切り替わった後 → findScrollTarget() でアンカー先を探してスクロール
+// flush: "post" にすると旧 DOM のキャプチャができないため、この watch は flush: "pre" が正しい
+// 参照: docs/knowhow/vue-watch-vs-computed.md
 watch(
   () => [state.filters.tools, state.filters.thinking, state.filters.subagents, state.filters.hooks, state.filters.user, state.filters.assistant] as const,
   () => {
-    // 旧DOM がまだ残っている段階で画面内要素をキャプチャ
-    captureVisibleUuids()
+    captureVisibleUuids() // 旧 DOM（flush: "pre" なのでまだ更新前）
 
-    // 新DOM に切り替わった後にスクロール
-    nextTick(() => {
+    nextTick(() => {      // 新 DOM（nextTick で更新後）
       const target = findScrollTarget()
       if (target) {
         const el = document.querySelector(`[data-uuid="${target}"]`)
