@@ -291,7 +291,7 @@ function paneGridClass(count: number): string {
                 <div class="flex items-center gap-2 mb-1 text-[11px]">
                   <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Assistant' }}</span>
                   <span class="text-text-dim">{{ formatTime(entry.timestamp) }}</span>
-                  <span v-if="isToolUse(entry)" class="text-[#f0a500] text-[11px]">
+                  <span v-if="isToolUse(entry)" class="text-[#f0a500] text-[11px] truncate max-w-[60%]" :title="getToolNames(entry).join(', ')">
                     🔧 {{ getToolNames(entry).join(', ') }}
                   </span>
                 </div>
