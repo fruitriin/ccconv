@@ -47,10 +47,24 @@ function getToolNames(entry: Entry): string[] {
   if (!Array.isArray(content)) return []
   return content.filter(c => c.type === 'tool_use').map(c => c.name ?? '(tool)')
 }
+
+function isEmptyEntry(entry: Entry): boolean {
+  const text = getTextContent(entry)
+  if (text.trim()) return false
+  if (isToolUse(entry)) return false
+  const content = entry.message?.content
+  if (!content) return true
+  if (Array.isArray(content) && content.length === 0) return true
+  if (Array.isArray(content) && content.every(c =>
+    (c.type === 'text' && !c.text?.trim()) ||
+    (c.type !== 'text' && c.type !== 'tool_use' && c.type !== 'thinking' && c.type !== 'tool_result')
+  )) return true
+  return false
+}
 </script>
 
 <template>
-  <div class="my-2 border border-subagent-border rounded-md overflow-hidden">
+  <div class="my-2 border border-subagent-border rounded-md overflow-y-auto">
     <!-- ヘッダー -->
     <div
       class="flex items-center gap-2 px-2.5 py-1.5 bg-[rgba(233,69,96,0.1)] cursor-pointer select-none transition-colors hover:bg-[rgba(233,69,96,0.2)]"
@@ -62,9 +76,12 @@ function getToolNames(entry: Entry): string[] {
     </div>
     <!-- ボディ -->
     <div v-if="expanded" class="p-2 flex flex-col gap-1.5 bg-black/20">
-      <div
+      <template
         v-for="entry in entries"
         :key="entry.uuid ?? entry.timestamp"
+      >
+      <div
+        v-if="!isEmptyEntry(entry)"
         class="rounded-md p-2 text-[13px]"
         :class="entry.type === 'user'
           ? 'bg-[rgba(26,58,92,0.6)] self-end max-w-[85%]'
@@ -84,6 +101,7 @@ function getToolNames(entry: Entry): string[] {
           ツール実行
         </div>
       </div>
+      </template>
     </div>
   </div>
 </template>
