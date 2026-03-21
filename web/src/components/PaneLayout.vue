@@ -326,10 +326,13 @@ function buildTimeSlots(groups: PaneGroup[], mainItems?: ConvItem[]): TimeSlot[]
                   <div
                     v-for="entry in entries"
                     :key="entry.uuid ?? entry.timestamp"
+                    :data-uuid="entry.uuid"
+                    @click="entry.uuid && emit('setAnchor', entry.uuid)"
                     class="rounded p-1.5 text-[12px] mb-1 last:mb-0"
-                    :class="entry.type === 'user'
-                      ? 'bg-[rgba(26,58,92,0.6)]'
-                      : 'bg-[rgba(42,42,62,0.8)]'"
+                    :class="[
+                      anchorUuid === entry.uuid ? 'ring-1 ring-accent' : '',
+                      entry.type === 'user' ? 'bg-[rgba(26,58,92,0.6)]' : 'bg-[rgba(42,42,62,0.8)]'
+                    ]"
                   >
                     <div class="flex items-center gap-1.5 mb-1 text-[10px]">
                       <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Asst' }}</span>
@@ -411,10 +414,13 @@ function buildTimeSlots(groups: PaneGroup[], mainItems?: ConvItem[]): TimeSlot[]
               <template v-for="entry in pane.entries" :key="entry.uuid ?? entry.timestamp">
                 <div
                   v-if="!isEmptySubagentEntry(entry)"
+                  :data-uuid="entry.uuid"
+                  @click="entry.uuid && emit('setAnchor', entry.uuid)"
                   class="rounded-md p-2 text-[13px]"
-                  :class="entry.type === 'user'
-                    ? 'bg-[rgba(26,58,92,0.6)] self-end max-w-[85%]'
-                    : 'bg-[rgba(42,42,62,0.8)] self-start max-w-[85%]'"
+                  :class="[
+                    anchorUuid === entry.uuid ? 'ring-1 ring-accent' : '',
+                    entry.type === 'user' ? 'bg-[rgba(26,58,92,0.6)] self-end max-w-[85%]' : 'bg-[rgba(42,42,62,0.8)] self-start max-w-[85%]'
+                  ]"
                 >
                   <div class="flex items-center gap-2 mb-1 text-[11px]">
                     <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Assistant' }}</span>

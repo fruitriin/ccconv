@@ -195,6 +195,8 @@ const displayItems = computed<ConvItem[]>(() => {
           :entries="item.group.entries"
           :agent-id="item.group.agentId"
           :default-expanded="state.filters.subagents === 'expanded'"
+          :anchor-uuid="state.anchorUuid"
+          @set-anchor="setAnchor"
         />
       </div>
     </template>

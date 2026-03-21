@@ -14,9 +14,15 @@ const props = withDefaults(defineProps<{
   entries: Entry[]
   agentId: string
   defaultExpanded?: boolean
+  anchorUuid?: string | null
 }>(), {
   defaultExpanded: false,
+  anchorUuid: null,
 })
+
+const emit = defineEmits<{
+  setAnchor: [uuid: string]
+}>()
 
 const manualToggle = ref<boolean | null>(null)
 const expanded = computed(() => manualToggle.value !== null ? manualToggle.value : props.defaultExpanded)
@@ -51,10 +57,13 @@ function getModel(): string {
       >
       <div
         v-if="!isEmptySubagentEntry(entry)"
+        :data-uuid="entry.uuid"
+        @click="entry.uuid && emit('setAnchor', entry.uuid)"
         class="rounded-md p-2 text-[13px]"
-        :class="entry.type === 'user'
-          ? 'bg-[rgba(26,58,92,0.6)] self-end max-w-[85%]'
-          : 'bg-[rgba(42,42,62,0.8)] self-start max-w-[85%]'"
+        :class="[
+          anchorUuid === entry.uuid ? 'ring-1 ring-accent' : '',
+          entry.type === 'user' ? 'bg-[rgba(26,58,92,0.6)] self-end max-w-[85%]' : 'bg-[rgba(42,42,62,0.8)] self-start max-w-[85%]'
+        ]"
       >
         <div class="flex items-center gap-2 mb-1 text-[11px]">
           <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Assistant' }}</span>
