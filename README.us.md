@@ -32,100 +32,58 @@ After global installation, you can use it as the `ccconv` command.
 ### Basic Commands
 
 ```bash
-# Show today's conversations in talk format (default)
-ccconv
-
-# Watch mode — show new messages in real-time
-# Also useful as a recall engine to feed another agent's conversation context
-ccconv talk --watch
-
-# Watch a specific session
-ccconv talk --watch --session=<id>
-
-# Include thinking blocks
-ccconv talk --thinking
-
-# Show tool calls
-ccconv talk --tools
-
-# Include subagent conversations
-ccconv talk --subagents
-
-# Export today's conversation data as JSON (default)
-ccconv raws
-
-# Export all conversation data as JSON
-ccconv raws --since=all
-
-# Export data from specified date onwards
-ccconv raws --since=2024-08-20
-
-# Export data from specific project only
-ccconv raws --project=ccconv
-
-# Export in conversation-style readable format
-ccconv raws --format=talk
-
-# Export in simple key: value format
-ccconv raws --format=plain
-
-# Show messages in reverse order (newest first)
-ccconv raws --reverse
-
-# Show today's updated projects (default)
-ccconv projects
-
-# Show all projects with summary
-ccconv projects --since=all
-
-# Show token usage for last 4 hours
-ccconv tokens
-
-# Web dashboard (REST API + Vue.js frontend)
-ccconv web
-
-# List subagents
-ccconv subagents
-ccconv subagents --project=<name>
-ccconv subagents --session=<id>
+ccconv                    # Show today's conversations in talk format (default)
+ccconv talk --watch       # Real-time monitoring — also useful as a recall engine to feed another agent's conversation context
+ccconv web                # Web dashboard (REST API + Vue.js frontend)
+ccconv raws               # Export today's conversation data as JSON
+ccconv projects           # List today's updated projects
+ccconv subagents          # List subagents
+ccconv tokens             # Token usage for last 4 hours
 ```
 
-### Project Display Options
+### talk Options
 
 ```bash
-# Display in compact one-line format
-ccconv projects --one-line
-
-# Sort by token count
-ccconv projects --sort=tokens
-
-# Sort by message count
-ccconv projects --sort=messages
-
-# Output in JSON format
-ccconv projects --json
+ccconv talk --session=<id>          # Filter by session
+ccconv talk --watch --session=<id>  # Watch a specific session
+ccconv talk --thinking              # Include thinking blocks
+ccconv talk --tools                 # Show tool calls
+ccconv talk --subagents             # Include subagent conversations
+ccconv talk --since=all             # All time
+ccconv talk --reverse               # Reverse order
 ```
 
-### Data Filtering
+### raws Options
 
 ```bash
-# Filter by specific columns
-ccconv raws --column=timestamp,type,message.content
+ccconv raws --since=all                    # All conversation data
+ccconv raws --since=2024-08-20             # From specified date
+ccconv raws --project=ccconv               # Filter by project
+ccconv raws --format=talk                  # Conversation style
+ccconv raws --format=plain                 # Key: value format
+ccconv raws --reverse                      # Reverse order
+ccconv raws --type=user                    # User messages only (excludes tool_result)
+ccconv raws --type=userandtools            # User messages including tool_result
+ccconv raws --type=assistant               # Assistant messages + tool_result
+ccconv raws --column=timestamp,type        # Column filter
+```
 
-# Filter by specific project
-ccconv raws --project=ccconv
+### projects Options
 
-# Specify output format
-ccconv raws --format=talk     # Conversation style
-ccconv raws --format=plain    # Key: value format
+```bash
+ccconv projects --since=all        # All projects
+ccconv projects --one-line         # Compact one-line format
+ccconv projects --sort=tokens      # Sort by token count
+ccconv projects --sort=messages    # Sort by message count
+ccconv projects --json             # JSON output
+```
 
-# Control display order
-ccconv raws --reverse         # Show newest messages first (reverse order)
+### subagents Options
 
-# Filter by message type
-ccconv raws --type=user          # User messages only (excludes tool_result)
-ccconv raws --type=userandtools # User messages including tool_result
-ccconv raws --type=assistant    # Assistant messages + tool_result
+```bash
+ccconv subagents --project=<name>  # Filter by project
+ccconv subagents --session=<id>    # Filter by session
+ccconv subagents --since=all       # All time
 ```
 
 ## Features

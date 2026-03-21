@@ -32,100 +32,58 @@ bunx ccconv
 ### 基本コマンド
 
 ```bash
-# 今日の会話をtalk形式で表示（デフォルト）
-ccconv
-
-# ファイル監視（新しいメッセージをリアルタイム表示）
-# 別セッションのエージェント会話をコンテキストに読み込ませる追想エンジンとしても有用
-ccconv talk --watch
-
-# 特定セッションだけwatch
-ccconv talk --watch --session=<id>
-
-# thinkingブロックも表示
-ccconv talk --thinking
-
-# ツール呼び出しも表示
-ccconv talk --tools
-
-# サブエージェントの会話も表示
-ccconv talk --subagents
-
-# 今日の会話データをJSONで出力（デフォルト）
-ccconv raws
-
-# 全会話データをJSONで出力
-ccconv raws --since=all
-
-# 指定日以降の会話データをJSONで出力
-ccconv raws --since=2024-08-20
-
-# 指定プロジェクトのデータのみをJSONで出力
-ccconv raws --project=ccconv
-
-# 会話風の読みやすい形式で出力
-ccconv raws --format=talk
-
-# key: value形式のシンプルな出力
-ccconv raws --format=plain
-
-# 新しいメッセージから表示（逆順）
-ccconv raws --reverse
-
-# 今日更新されたプロジェクト一覧を表示（デフォルト）
-ccconv projects
-
-# 全プロジェクトの一覧とサマリを表示
-ccconv projects --since=all
-
-# 直近4時間のトークン使用量を表示
-ccconv tokens
-
-# Web ダッシュボード（REST API + Vue.js フロントエンド）
-ccconv web
-
-# サブエージェント一覧
-ccconv subagents
-ccconv subagents --project=<name>
-ccconv subagents --session=<id>
+ccconv                    # 今日の会話をtalk形式で表示（デフォルト）
+ccconv talk --watch       # リアルタイム監視 — 追想エンジンとして別セッションの会話をコンテキストに読み込ませるのにも有用
+ccconv web                # Web ダッシュボード（REST API + Vue.js フロントエンド）
+ccconv raws               # 今日の会話データをJSONで出力
+ccconv projects           # 今日更新されたプロジェクト一覧
+ccconv subagents          # サブエージェント一覧
+ccconv tokens             # 直近4時間のトークン使用量
 ```
 
-### プロジェクト表示オプション
+### talk オプション
 
 ```bash
-# コンパクトな1行形式で表示
-ccconv projects --one-line
-
-# トークン数順でソート
-ccconv projects --sort=tokens
-
-# メッセージ数順でソート
-ccconv projects --sort=messages
-
-# JSON形式で出力
-ccconv projects --json
+ccconv talk --session=<id>       # セッション指定
+ccconv talk --watch --session=<id>  # 特定セッションだけwatch
+ccconv talk --thinking           # thinkingブロックも表示
+ccconv talk --tools              # ツール呼び出しも表示
+ccconv talk --subagents          # サブエージェントの会話も表示
+ccconv talk --since=all          # 全期間
+ccconv talk --reverse            # 逆順
 ```
 
-### データフィルタリング
+### raws オプション
 
 ```bash
-# 指定した列のみを出力
-ccconv raws --column=timestamp,type,message.content
+ccconv raws --since=all                    # 全会話データ
+ccconv raws --since=2024-08-20             # 指定日以降
+ccconv raws --project=ccconv               # プロジェクト指定
+ccconv raws --format=talk                  # 会話風形式
+ccconv raws --format=plain                 # key: value形式
+ccconv raws --reverse                      # 逆順
+ccconv raws --type=user                    # ユーザーメッセージのみ（tool_result除外）
+ccconv raws --type=userandtools            # ユーザーメッセージ（tool_result含む）
+ccconv raws --type=assistant               # アシスタントメッセージ + tool_result
+ccconv raws --column=timestamp,type        # 列指定
+```
 
-# 指定プロジェクトのデータのみを出力
-ccconv raws --project=ccconv
+### projects オプション
 
-# 出力形式の指定
-ccconv raws --format=talk     # 会話風形式
-ccconv raws --format=plain    # key: value形式
+```bash
+ccconv projects --since=all        # 全プロジェクト
+ccconv projects --one-line         # コンパクトな1行形式
+ccconv projects --sort=tokens      # トークン数順でソート
+ccconv projects --sort=messages    # メッセージ数順
+ccconv projects --json             # JSON出力
+```
 
-# 表示順の制御
-ccconv raws --reverse         # 新しいメッセージから表示（逆順）
+### subagents オプション
 
-# メッセージタイプでフィルタリング
-ccconv raws --type=user          # ユーザーメッセージのみ（tool_result除外）
-ccconv raws --type=userandtools # ユーザーメッセージ（tool_result含む）
-ccconv raws --type=assistant    # アシスタントメッセージ + tool_result
+```bash
+ccconv subagents --project=<name>  # プロジェクト指定
+ccconv subagents --session=<id>    # セッション指定
+ccconv subagents --since=all       # 全期間
 ```
 
 ## 機能
