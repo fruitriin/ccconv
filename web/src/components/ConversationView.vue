@@ -126,20 +126,35 @@ function formatTime(iso?: string): string {
   return new Date(iso).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
-const LONG_MESSAGE_THRESHOLD = 300 // 文字数
-const LONG_MESSAGE_LINES = 5      // 行数
-
-function isLongMessage(entry: Entry): boolean {
-  const text = getTextContent(entry)
-  return text.length > LONG_MESSAGE_THRESHOLD || text.split('\n').length > LONG_MESSAGE_LINES
+function isSkillPrompt(entry: Entry): boolean {
+  if (entry.type !== 'user') return false
+  const text = getTextContent(entry).trim()
+  // スキル展開後のプロンプトは長い定型文。
+  // 元のユーザー入力が /command 形式だったものが展開されている
+  // 判定: 長いメッセージ（200文字超）かつ、フロントマターやスキル特有のパターンを含む
+  if (text.length < 200) return false
+  // "入力: $ARGUMENTS" はスキルプロンプトの末尾に付く
+  if (text.includes('$ARGUMENTS')) return true
+  // "---\n" で始まるフロントマター
+  if (text.startsWith('---\n') || text.startsWith('# /')) return true
+  return false
 }
 
-function getPreview(text: string): string {
-  const lines = text.split('\n')
-  if (lines.length > LONG_MESSAGE_LINES) {
-    return lines.slice(0, LONG_MESSAGE_LINES).join('\n')
-  }
-  return text.slice(0, LONG_MESSAGE_THRESHOLD)
+function getSkillName(entry: Entry): string {
+  const text = getTextContent(entry).trim()
+  // "# /command — ..." パターン
+  const headerMatch = text.match(/^#\s*(\/\S+)/)
+  if (headerMatch) return headerMatch[1]
+  // フロントマター内の name:
+  const nameMatch = text.match(/^---[\s\S]*?name:\s*(\S+)/m)
+  if (nameMatch) return '/' + nameMatch[1]
+  return '/skill'
+}
+
+function getSkillPreview(text: string): string {
+  // 最初の2行（ヘッダー部分）
+  const lines = text.split('\n').filter(l => l.trim())
+  return lines.slice(0, 2).join('\n')
 }
 
 // 折りたたみ状態管理
@@ -311,32 +326,40 @@ function highlightText(text: string, search: string): string {
 
             <!-- テキストコンテンツ -->
             <template v-if="getTextContent(item.entry)">
-              <!-- 長いメッセージ（折りたたみ） -->
-              <template v-if="isLongMessage(item.entry) && !expandedLong.has(idx)">
-                <div
-                  class="whitespace-pre-wrap break-words text-text"
-                  v-html="highlightText(getPreview(getTextContent(item.entry)), state.searchText)"
-                ></div>
-                <button
-                  class="mt-1 text-accent text-xs cursor-pointer bg-transparent border-none p-0 hover:underline"
-                  @click="toggleLong(idx)"
-                >
-                  ▸ 続きを表示（{{ getTextContent(item.entry).length }}文字）
-                </button>
+              <!-- スキルプロンプト（折りたたみ） -->
+              <template v-if="isSkillPrompt(item.entry) && !expandedLong.has(idx)">
+                <div class="flex items-center gap-2">
+                  <span class="text-accent font-mono text-sm">{{ getSkillName(item.entry) }}</span>
+                  <button
+                    class="text-text-dim text-xs cursor-pointer bg-transparent border-none p-0 hover:text-accent"
+                    @click="toggleLong(idx)"
+                  >
+                    ▸ プロンプト展開（{{ getTextContent(item.entry).length }}文字）
+                  </button>
+                </div>
               </template>
-              <!-- 通常 or 展開済み -->
+              <!-- スキル展開済み -->
+              <template v-else-if="isSkillPrompt(item.entry)">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-accent font-mono text-sm">{{ getSkillName(item.entry) }}</span>
+                  <button
+                    class="text-text-dim text-xs cursor-pointer bg-transparent border-none p-0 hover:text-accent"
+                    @click="toggleLong(idx)"
+                  >
+                    ▾ 折りたたむ
+                  </button>
+                </div>
+                <div
+                  class="whitespace-pre-wrap break-words text-text text-xs opacity-70"
+                  v-html="highlightText(getTextContent(item.entry), state.searchText)"
+                ></div>
+              </template>
+              <!-- 通常メッセージ -->
               <template v-else>
                 <div
                   class="whitespace-pre-wrap break-words text-text"
                   v-html="highlightText(getTextContent(item.entry), state.searchText)"
                 ></div>
-                <button
-                  v-if="isLongMessage(item.entry)"
-                  class="mt-1 text-accent text-xs cursor-pointer bg-transparent border-none p-0 hover:underline"
-                  @click="toggleLong(idx)"
-                >
-                  ▾ 折りたたむ
-                </button>
               </template>
             </template>
 
