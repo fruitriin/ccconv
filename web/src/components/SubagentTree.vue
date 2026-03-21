@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed } from 'vue'
 import type { Entry } from '../composables/useConversations'
+import Tooltip from './Tooltip.vue'
 import {
   getTextContent,
   isToolUse,
@@ -16,14 +17,11 @@ const props = withDefaults(defineProps<{
   defaultExpanded: false,
 })
 
-const expanded = ref(props.defaultExpanded)
-
-watch(() => props.defaultExpanded, (val) => {
-  expanded.value = val
-})
+const manualToggle = ref<boolean | null>(null)
+const expanded = computed(() => manualToggle.value !== null ? manualToggle.value : props.defaultExpanded)
 
 function toggleExpand() {
-  expanded.value = !expanded.value
+  manualToggle.value = !expanded.value
 }
 
 function getModel(): string {
@@ -83,9 +81,11 @@ function isEmptyEntry(entry: Entry): boolean {
         <div class="flex items-center gap-2 mb-1 text-[11px]">
           <span class="font-semibold text-text-dim">{{ entry.type === 'user' ? 'User' : 'Assistant' }}</span>
           <span class="text-text-dim">{{ formatTime(entry.timestamp) }}</span>
-          <span v-if="isToolUse(entry)" class="text-[#f0a500] text-[11px] truncate max-w-[60%]" :title="getToolNames(entry).join(', ')">
-            🔧 {{ getToolNames(entry).join(', ') }}
-          </span>
+          <Tooltip v-if="isToolUse(entry)" :text="getToolNames(entry).join(', ')">
+            <span class="text-[#f0a500] text-[11px] truncate max-w-[60%] inline-block">
+              🔧 {{ getToolNames(entry).join(', ') }}
+            </span>
+          </Tooltip>
         </div>
         <div v-if="getTextContent(entry)" class="whitespace-pre-wrap break-words leading-relaxed text-text">
           {{ getTextContent(entry) }}

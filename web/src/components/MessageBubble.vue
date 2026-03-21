@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import Tooltip from './Tooltip.vue'
 import { useConversations } from '../composables/useConversations'
 import type { Entry } from '../composables/useConversations'
 import {
@@ -184,26 +185,20 @@ function isEmpty(): boolean {
 
     <!-- ツール実行（テキストなし） -->
     <div v-if="hasOnlyToolUse(entry)" class="flex flex-col gap-1 mt-1 overflow-hidden">
-      <div
-        v-for="(tool, ti) in getToolUseItems(entry)"
-        :key="ti"
-        class="text-[#f0a500] text-xs font-mono truncate"
-        :title="getToolSummary(tool)"
-      >
-        🔧 {{ getToolSummary(tool) }}
-      </div>
+      <Tooltip v-for="(tool, ti) in getToolUseItems(entry)" :key="ti" :text="getToolSummary(tool)">
+        <div class="text-[#f0a500] text-xs font-mono truncate">
+          🔧 {{ getToolSummary(tool) }}
+        </div>
+      </Tooltip>
     </div>
 
     <!-- テキストあり + ツールあり の場合はツール名を補足表示 -->
     <div v-else-if="isToolUse(entry) && getTextContent(entry)" class="mt-1.5 flex flex-wrap gap-1.5 overflow-hidden">
-      <span
-        v-for="(tool, ti) in getToolUseItems(entry)"
-        :key="ti"
-        class="text-[#f0a500] text-xs font-mono truncate max-w-full"
-        :title="getToolSummary(tool)"
-      >
-        🔧 {{ getToolSummary(tool) }}
-      </span>
+      <Tooltip v-for="(tool, ti) in getToolUseItems(entry)" :key="ti" :text="getToolSummary(tool)">
+        <span class="text-[#f0a500] text-xs font-mono truncate max-w-full">
+          🔧 {{ getToolSummary(tool) }}
+        </span>
+      </Tooltip>
     </div>
   </div>
 </template>
