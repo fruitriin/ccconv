@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-21
+
+### Added
+- `web` サブコマンド: Vue 3 + Vite による Web ダッシュボード (`ccconv web` で起動)
+- 3表示モード: 📋リニア / 🪟ペイン / 📜フロー
+- ⏱タイムライン同期: CSS Grid で並列ペインの同時刻メッセージを横揃え
+- 6種フィルタ: User / Assistant / Tools / Thinking / Hooks / Subagents（後者3つは3状態トグル）
+- Zellij ライクなペイン分割: Agent パターン（メイン停止）+ Team パターン（👑 Main 並列）
+- URL ルーティング (`/#/project/session`)
+- アンカー機構: フィルタ切替時にスクロール位置を保持
+- サイドバーリサイズ（ドラッグ）
+- スキルプロンプト自動折りたたみ (`/skill名` 表示)
+- Tool Result 折りたたみ展開
+- 内製ツールチップ（マウス追従、即座表示）
+- フローティングスピナー
+- プロジェクト選択時に最新セッション自動選択
+- テスト 130件 (messageUtils 58 + data 35 + server 30 + dedup 7)
+
+### Changed
+- データ層分離: `src/data.ts` に getAllData, getProjects, getSessions 等を抽出
+- API サーバー: `src/server.ts` に Bun.serve() REST API を実装
+- UnoCSS 導入（素 CSS → ユーティリティクラス）
+
+## [0.2.0] - 2026-03-21
+
+### Added
+- `subagents` サブコマンド: サブエージェント一覧（ID / モデル / メッセージ数 / 最初の指示文）
+- `talk --subagents`: 親セッション内にサブエージェント会話をツリー表示 (┏━/┃/┗━)
+- `projects` にサブエージェント統計 (🤖N)
+- サブエージェント UUID 重複排除（コンパクト化ファイル対応）
+
+### Changed
+- 期間フィルタ: `3days` / `week` / `month` の相対指定に対応
+- セッション一覧を日時降順にソート
+
 ## [0.1.0] - 2026-03-17
 
 ### Added
