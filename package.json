@@ -28,7 +28,8 @@
   "files": [
     "ccconv.js",
     "README.md",
-    "README.us.md"
+    "README.us.md",
+    "docs/screenshots/"
   ],
   "repository": {
     "type": "git",

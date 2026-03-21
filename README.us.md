@@ -4,6 +4,10 @@
 
 A command-line tool for handling Claude Code conversation logs
 
+![ccconv talk](docs/screenshots/ccconv-talk.png)
+
+![ccconv web](docs/screenshots/ccconv-web.png)
+
 ## Overview
 
 This tool reads Claude Code conversation logs stored in `~/.claude/projects/` and provides various ways to display and handle the data.
@@ -32,6 +36,7 @@ After global installation, you can use it as the `ccconv` command.
 ccconv
 
 # Watch mode — show new messages in real-time
+# Also useful as a recall engine to feed another agent's conversation context
 ccconv talk --watch
 
 # Watch a specific session

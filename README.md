@@ -4,6 +4,10 @@
 
 Claude Code の会話ログをコマンドラインで扱うためのツール
 
+![ccconv talk](docs/screenshots/ccconv-talk.png)
+
+![ccconv web](docs/screenshots/ccconv-web.png)
+
 ## 概要
 
 このツールは `~/.claude/projects/` に保存されている Claude Code の会話ログを読み込み、様々な形式でデータの表示・解析を行います。
@@ -32,6 +36,7 @@ bunx ccconv
 ccconv
 
 # ファイル監視（新しいメッセージをリアルタイム表示）
+# 別セッションのエージェント会話をコンテキストに読み込ませる追想エンジンとしても有用
 ccconv talk --watch
 
 # 特定セッションだけwatch
