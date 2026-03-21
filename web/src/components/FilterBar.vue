@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useConversations } from '../composables/useConversations'
 import type { TriState, Filters } from '../composables/useConversations'
 
@@ -35,11 +36,17 @@ const boolButtons: Array<{ key: 'user' | 'assistant' | 'hooks'; icon: string; la
   { key: 'hooks', icon: '📡', label: 'Hooks' },
 ]
 
-const triButtons: Array<{ key: 'tools' | 'thinking' | 'subagents'; icon: string; label: string }> = [
-  { key: 'tools', icon: '🔧', label: 'Tools' },
-  { key: 'thinking', icon: '💭', label: 'Thinking' },
-  { key: 'subagents', icon: '🧩', label: 'Subagents' },
-]
+const triButtons = computed(() => {
+  const buttons: Array<{ key: 'tools' | 'thinking' | 'subagents'; icon: string; label: string }> = [
+    { key: 'tools', icon: '🔧', label: 'Tools' },
+    { key: 'thinking', icon: '💭', label: 'Thinking' },
+  ]
+  // ペイン/フローモードではサブエージェントトグルを隠す
+  if (state.viewMode === 'linear') {
+    buttons.push({ key: 'subagents', icon: '🧩', label: 'Subagents' })
+  }
+  return buttons
+})
 </script>
 
 <template>
@@ -93,7 +100,7 @@ const triButtons: Array<{ key: 'tools' | 'thinking' | 'subagents'; icon: string;
           📋 リニア
         </button>
         <button
-          @click="state.viewMode = 'pane'"
+          @click="state.viewMode = 'pane'; state.filters.subagents = 'expanded'"
           class="px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer border-none"
           :class="state.viewMode === 'pane' ? 'bg-accent text-white' : 'bg-surface2 text-text-dim'"
           title="ペイン分割（個別スクロール）"
@@ -101,7 +108,7 @@ const triButtons: Array<{ key: 'tools' | 'thinking' | 'subagents'; icon: string;
           🪟 ペイン
         </button>
         <button
-          @click="state.viewMode = 'pane-flow'"
+          @click="state.viewMode = 'pane-flow'; state.filters.subagents = 'expanded'"
           class="px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer border-none"
           :class="state.viewMode === 'pane-flow' ? 'bg-accent text-white' : 'bg-surface2 text-text-dim'"
           title="ペイン分割（ページスクロール）"
