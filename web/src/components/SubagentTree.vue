@@ -64,7 +64,7 @@ function isEmptyEntry(entry: Entry): boolean {
 </script>
 
 <template>
-  <div class="my-2 border border-subagent-border rounded-md overflow-y-auto">
+  <div class="my-2 border border-subagent-border rounded-md">
     <!-- ヘッダー -->
     <div
       class="flex items-center gap-2 px-2.5 py-1.5 bg-[rgba(233,69,96,0.1)] cursor-pointer select-none transition-colors hover:bg-[rgba(233,69,96,0.2)]"
@@ -75,7 +75,7 @@ function isEmptyEntry(entry: Entry): boolean {
       <span class="text-[11px] text-text-dim">{{ entries.length }}件</span>
     </div>
     <!-- ボディ -->
-    <div v-if="expanded" class="p-2 flex flex-col gap-1.5 bg-black/20">
+    <div v-if="expanded" class="p-2 flex flex-col gap-1.5 bg-black/20 max-h-[60vh] overflow-y-auto">
       <template
         v-for="entry in entries"
         :key="entry.uuid ?? entry.timestamp"
