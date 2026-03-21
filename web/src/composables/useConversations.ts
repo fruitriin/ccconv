@@ -1,4 +1,4 @@
-import { reactive } from 'vue'
+import { reactive, computed } from 'vue'
 
 export interface Project {
   name: string
@@ -27,6 +27,7 @@ export interface Session {
 export interface MessageContent {
   type: string
   text?: string
+  thinking?: string
   id?: string
   name?: string
   input?: any
@@ -68,6 +69,15 @@ export interface Entry {
   _agentId?: string
 }
 
+export interface Filters {
+  user: boolean
+  assistant: boolean
+  tools: boolean
+  thinking: boolean
+  hooks: boolean
+  subagents: boolean
+}
+
 const state = reactive({
   projects: [] as Project[],
   sessions: [] as Session[],
@@ -76,8 +86,54 @@ const state = reactive({
   selectedSession: null as string | null,
   loading: false,
   sinceFilter: 'today' as string,
-  typeFilter: 'all' as string,
   searchText: '' as string,
+  filters: {
+    user: true,
+    assistant: true,
+    tools: false,
+    thinking: false,
+    hooks: false,
+    subagents: true,
+  } as Filters,
+})
+
+function isHook(entry: Entry): boolean {
+  const content = entry.message?.content
+  if (typeof content === 'string') return content.includes('<system-reminder>')
+  if (Array.isArray(content)) return content.some(c =>
+    (c.type === 'text' && c.text?.includes('<system-reminder>')) ||
+    (c.type === 'tool_result' && typeof c.content === 'string' && c.content.includes('<system-reminder>'))
+  )
+  return false
+}
+
+function isToolResultEntry(entry: Entry): boolean {
+  const content = entry.message?.content
+  if (!Array.isArray(content)) return false
+  return content.some(c => c.type === 'tool_result')
+}
+
+const filteredConversations = computed(() => {
+  return state.conversations.filter(entry => {
+    if (entry._isSubagent) return state.filters.subagents
+    if (isHook(entry)) return state.filters.hooks
+    if (isToolResultEntry(entry)) return state.filters.tools
+    if (entry.type === 'user') return state.filters.user
+    if (entry.type === 'assistant') {
+      const content = entry.message?.content
+      if (Array.isArray(content)) {
+        const hasText = content.some(c => c.type === 'text' && c.text?.trim())
+        const hasToolUse = content.some(c => c.type === 'tool_use')
+        const hasThinking = content.some(c => c.type === 'thinking')
+
+        if (hasThinking && !hasText && !hasToolUse) return state.filters.thinking
+        if (hasToolUse && !hasText) return state.filters.tools
+        return state.filters.assistant
+      }
+      return state.filters.assistant
+    }
+    return true
+  })
 })
 
 async function fetchProjects() {
@@ -151,6 +207,9 @@ function setSinceFilter(since: string) {
 export function useConversations() {
   return {
     state,
+    filteredConversations,
+    isHook,
+    isToolResultEntry,
     fetchProjects,
     fetchSessions,
     fetchConversations,

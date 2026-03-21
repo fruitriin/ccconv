@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useConversations } from '../composables/useConversations'
-import type { Entry } from '../composables/useConversations'
+import type { Entry, MessageContent } from '../composables/useConversations'
 import SubagentTree from './SubagentTree.vue'
 
-const { state } = useConversations()
+const { state, filteredConversations, isHook, isToolResultEntry } = useConversations()
 
 // サブエージェントエントリをagentIdでグループ化
 interface SubagentGroup {
@@ -17,7 +17,6 @@ interface ConvItem {
   type: 'entry' | 'subagent'
   entry?: Entry
   group?: SubagentGroup
-  // フィルタ用テキスト
   searchText?: string
 }
 
@@ -34,22 +33,73 @@ function getTextContent(entry: Entry): string {
   return ''
 }
 
-function isToolResult(entry: Entry): boolean {
-  const content = entry.message?.content
-  if (!Array.isArray(content)) return false
-  return content.some(c => c.type === 'tool_result')
-}
-
 function isToolUse(entry: Entry): boolean {
   const content = entry.message?.content
   if (!Array.isArray(content)) return false
   return content.some(c => c.type === 'tool_use')
 }
 
-function getToolNames(entry: Entry): string[] {
+function hasOnlyToolUse(entry: Entry): boolean {
+  const content = entry.message?.content
+  if (!Array.isArray(content)) return false
+  const hasText = content.some(c => c.type === 'text' && c.text?.trim())
+  const hasToolUse = content.some(c => c.type === 'tool_use')
+  return hasToolUse && !hasText
+}
+
+function getToolUseItems(entry: Entry): MessageContent[] {
   const content = entry.message?.content
   if (!Array.isArray(content)) return []
-  return content.filter(c => c.type === 'tool_use').map(c => c.name ?? '(tool)')
+  return content.filter(c => c.type === 'tool_use')
+}
+
+function getToolNames(entry: Entry): string[] {
+  return getToolUseItems(entry).map(c => c.name ?? '(tool)')
+}
+
+function getToolSummary(tool: MessageContent): string {
+  const name = tool.name ?? '(tool)'
+  const input = tool.input
+  if (!input || typeof input !== 'object') return name
+  const keys = Object.keys(input)
+  if (keys.length === 0) return name
+  const firstKey = keys[0]
+  let val = input[firstKey]
+  if (typeof val === 'string' && val.length > 50) val = val.slice(0, 50) + '...'
+  return `${name}(${firstKey}=${JSON.stringify(val)})`
+}
+
+function getThinkingItems(entry: Entry): MessageContent[] {
+  const content = entry.message?.content
+  if (!Array.isArray(content)) return []
+  return content.filter(c => c.type === 'thinking')
+}
+
+function hasThinkingOnly(entry: Entry): boolean {
+  const content = entry.message?.content
+  if (!Array.isArray(content)) return false
+  const hasText = content.some(c => c.type === 'text' && c.text?.trim())
+  const hasToolUse = content.some(c => c.type === 'tool_use')
+  const hasThinking = content.some(c => c.type === 'thinking')
+  return hasThinking && !hasText && !hasToolUse
+}
+
+function getHookPreview(entry: Entry): string {
+  const content = entry.message?.content
+  if (typeof content === 'string') {
+    const match = content.match(/<system-reminder>([\s\S]*?)<\/system-reminder>/)
+    if (match) return match[1].trim().slice(0, 120)
+    return content.slice(0, 120)
+  }
+  if (Array.isArray(content)) {
+    for (const c of content) {
+      if (c.type === 'text' && c.text?.includes('<system-reminder>')) {
+        const match = c.text.match(/<system-reminder>([\s\S]*?)<\/system-reminder>/)
+        if (match) return match[1].trim().slice(0, 120)
+      }
+    }
+  }
+  return ''
 }
 
 function formatTime(iso?: string): string {
@@ -57,10 +107,20 @@ function formatTime(iso?: string): string {
   return new Date(iso).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
+// 折りたたみ状態管理
+const collapsedThinking = ref<Set<number>>(new Set())
+
+function toggleThinking(idx: number) {
+  if (collapsedThinking.value.has(idx)) {
+    collapsedThinking.value.delete(idx)
+  } else {
+    collapsedThinking.value.add(idx)
+  }
+}
+
 // 表示用アイテムリスト
 const displayItems = computed<ConvItem[]>(() => {
-  const entries = state.conversations
-  const typeFilter = state.typeFilter
+  const entries = filteredConversations.value
   const searchText = state.searchText.toLowerCase()
 
   // サブエージェントをグループ化（agentId → entries）
@@ -91,21 +151,16 @@ const displayItems = computed<ConvItem[]>(() => {
   let subagentIdx = 0
 
   for (const entry of mainEntries) {
-    if (typeFilter === 'all' || typeFilter === 'assistant') {
-      while (
-        subagentIdx < subagentGroups.length &&
-        entry.timestamp &&
-        subagentGroups[subagentIdx][1].firstTimestamp < entry.timestamp
-      ) {
-        const [agentId, group] = subagentGroups[subagentIdx]
-        items.push({ type: 'subagent', group: { agentId, entries: group.entries } })
-        subagentIdx++
-      }
+    // サブエージェントを時系列に挿入
+    while (
+      subagentIdx < subagentGroups.length &&
+      entry.timestamp &&
+      subagentGroups[subagentIdx][1].firstTimestamp < entry.timestamp
+    ) {
+      const [agentId, group] = subagentGroups[subagentIdx]
+      items.push({ type: 'subagent', group: { agentId, entries: group.entries } })
+      subagentIdx++
     }
-
-    if (typeFilter === 'user' && entry.type !== 'user') continue
-    if (typeFilter === 'assistant' && entry.type !== 'assistant') continue
-    if (entry.type === 'user' && isToolResult(entry) && typeFilter !== 'user') continue
 
     const text = getTextContent(entry)
 
@@ -114,12 +169,10 @@ const displayItems = computed<ConvItem[]>(() => {
     items.push({ type: 'entry', entry, searchText: text })
   }
 
-  if (typeFilter === 'all' || typeFilter === 'assistant') {
-    while (subagentIdx < subagentGroups.length) {
-      const [agentId, group] = subagentGroups[subagentIdx]
-      items.push({ type: 'subagent', group: { agentId, entries: group.entries } })
-      subagentIdx++
-    }
+  while (subagentIdx < subagentGroups.length) {
+    const [agentId, group] = subagentGroups[subagentIdx]
+    items.push({ type: 'subagent', group: { agentId, entries: group.entries } })
+    subagentIdx++
   }
 
   return items
@@ -146,31 +199,103 @@ function highlightText(text: string, search: string): string {
     <template v-else>
       <template v-for="(item, idx) in displayItems" :key="idx">
         <!-- 通常エントリ -->
-        <div
-          v-if="item.type === 'entry' && item.entry"
-          class="rounded-lg px-3.5 py-2.5 max-w-[80%] text-[13px] leading-relaxed"
-          :class="item.entry.type === 'user'
-            ? 'bg-user-bg self-end ml-auto'
-            : 'bg-assistant-bg self-start'"
-        >
-          <div class="flex items-center gap-2 mb-1.5 text-[11px] flex-wrap">
-            <span class="font-bold text-text-dim">{{ item.entry.type === 'user' ? 'User' : 'Assistant' }}</span>
-            <span class="text-text-dim">{{ formatTime(item.entry.timestamp) }}</span>
-            <span v-if="isToolUse(item.entry)" class="text-[#f0a500]">
-              🔧 {{ getToolNames(item.entry).join(', ') }}
-            </span>
-            <span v-if="item.entry.message?.usage" class="text-text-dim ml-auto">
-              {{ item.entry.message.usage.input_tokens }}in / {{ item.entry.message.usage.output_tokens }}out
-            </span>
-          </div>
+        <template v-if="item.type === 'entry' && item.entry">
+          <!-- Hook エントリ -->
           <div
-            class="whitespace-pre-wrap break-words text-text"
-            v-html="highlightText(getTextContent(item.entry), state.searchText)"
-          ></div>
-          <div v-if="isToolUse(item.entry) && !getTextContent(item.entry)" class="text-text-dim italic text-xs">
-            ツール実行のみ
+            v-if="isHook(item.entry)"
+            class="rounded-lg px-3 py-1.5 text-text-dim text-xs self-start bg-surface2 max-w-[80%] border border-[#333]"
+          >
+            <span class="mr-1">📡</span>
+            <span class="font-mono">[system-reminder]</span>
+            <span class="ml-1">{{ getHookPreview(item.entry) }}...</span>
           </div>
-        </div>
+
+          <!-- Tool Result エントリ -->
+          <div
+            v-else-if="isToolResultEntry(item.entry)"
+            class="rounded-lg px-3 py-1.5 text-text-dim text-xs self-start bg-surface2 max-w-[80%] border border-[#333]"
+          >
+            <div class="flex items-center gap-1.5 mb-0.5 text-[11px]">
+              <span class="text-[#f0a500]">🔧</span>
+              <span class="text-text-dim">Tool Result</span>
+              <span class="text-text-dim">{{ formatTime(item.entry.timestamp) }}</span>
+            </div>
+            <div class="whitespace-pre-wrap break-words text-text-dim truncate max-h-16 overflow-hidden">
+              {{ getTextContent(item.entry) || '(no text content)' }}
+            </div>
+          </div>
+
+          <!-- Thinking のみのエントリ -->
+          <div
+            v-else-if="hasThinkingOnly(item.entry)"
+            class="rounded-lg px-3 py-1.5 text-xs self-start bg-surface2 max-w-[80%] border border-[#333]"
+          >
+            <button
+              class="flex items-center gap-1.5 w-full text-left cursor-pointer bg-transparent border-none p-0"
+              @click="toggleThinking(idx)"
+            >
+              <span>💭</span>
+              <span class="italic text-text-dim">
+                {{ collapsedThinking.has(idx)
+                  ? (getThinkingItems(item.entry)[0]?.thinking?.slice(0, 100) ?? '') + '...'
+                  : '(thinking — クリックで展開)' }}
+              </span>
+              <span class="ml-auto text-text-dim">{{ collapsedThinking.has(idx) ? '▾' : '▸' }}</span>
+            </button>
+            <div v-if="collapsedThinking.has(idx)" class="mt-1.5 italic text-text-dim whitespace-pre-wrap break-words text-[12px]">
+              <div v-for="(t, ti) in getThinkingItems(item.entry)" :key="ti">
+                {{ t.thinking }}
+              </div>
+            </div>
+          </div>
+
+          <!-- 通常メッセージ -->
+          <div
+            v-else
+            class="rounded-lg px-3.5 py-2.5 max-w-[80%] text-[13px] leading-relaxed"
+            :class="item.entry.type === 'user'
+              ? 'bg-user-bg self-end ml-auto'
+              : 'bg-assistant-bg self-start'"
+          >
+            <div class="flex items-center gap-2 mb-1.5 text-[11px] flex-wrap">
+              <span class="font-bold text-text-dim">{{ item.entry.type === 'user' ? 'User' : 'Assistant' }}</span>
+              <span class="text-text-dim">{{ formatTime(item.entry.timestamp) }}</span>
+              <span v-if="item.entry.message?.usage" class="text-text-dim ml-auto">
+                {{ item.entry.message.usage.input_tokens }}in / {{ item.entry.message.usage.output_tokens }}out
+              </span>
+            </div>
+
+            <!-- テキストコンテンツ -->
+            <div
+              v-if="getTextContent(item.entry)"
+              class="whitespace-pre-wrap break-words text-text"
+              v-html="highlightText(getTextContent(item.entry), state.searchText)"
+            ></div>
+
+            <!-- ツール実行（テキストなし） -->
+            <div v-if="hasOnlyToolUse(item.entry)" class="flex flex-col gap-1 mt-1">
+              <div
+                v-for="(tool, ti) in getToolUseItems(item.entry)"
+                :key="ti"
+                class="text-[#f0a500] text-xs font-mono"
+              >
+                🔧 {{ getToolSummary(tool) }}
+              </div>
+            </div>
+
+            <!-- テキストあり + ツールあり の場合はツール名を補足表示 -->
+            <div v-else-if="isToolUse(item.entry) && getTextContent(item.entry)" class="mt-1.5 flex flex-wrap gap-1.5">
+              <span
+                v-for="(tool, ti) in getToolUseItems(item.entry)"
+                :key="ti"
+                class="text-[#f0a500] text-xs font-mono"
+              >
+                🔧 {{ getToolSummary(tool) }}
+              </span>
+            </div>
+          </div>
+        </template>
+
         <!-- サブエージェントグループ -->
         <SubagentTree
           v-else-if="item.type === 'subagent' && item.group"
