@@ -167,10 +167,11 @@ const displayItems = computed<ConvItem[]>(() => {
 
   <!-- ペインモード -->
   <PaneLayout
-    v-else-if="state.viewMode === 'pane'"
+    v-else-if="state.viewMode === 'pane' || state.viewMode === 'pane-flow'"
     :display-items="displayItems"
     :search-text="state.searchText"
     :anchor-uuid="state.anchorUuid"
+    :flow-mode="state.viewMode === 'pane-flow'"
     @set-anchor="setAnchor"
   />
 

@@ -96,9 +96,17 @@ const triButtons: Array<{ key: 'tools' | 'thinking' | 'subagents'; icon: string;
           @click="state.viewMode = 'pane'"
           class="px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer border-none"
           :class="state.viewMode === 'pane' ? 'bg-accent text-white' : 'bg-surface2 text-text-dim'"
-          title="ペイン分割表示"
+          title="ペイン分割（個別スクロール）"
         >
           🪟 ペイン
+        </button>
+        <button
+          @click="state.viewMode = 'pane-flow'"
+          class="px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer border-none"
+          :class="state.viewMode === 'pane-flow' ? 'bg-accent text-white' : 'bg-surface2 text-text-dim'"
+          title="ペイン分割（ページスクロール）"
+        >
+          📜 フロー
         </button>
       </div>
     </div>

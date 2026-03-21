@@ -34,11 +34,14 @@ interface PaneGroup {
   model?: string
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   displayItems: ConvItem[]
   searchText?: string
   anchorUuid?: string | null
-}>()
+  flowMode?: boolean
+}>(), {
+  flowMode: false,
+})
 
 const emit = defineEmits<{
   setAnchor: [uuid: string]
@@ -271,7 +274,10 @@ function paneGridClass(count: number): string {
             <span v-if="pane.description" class="text-text-dim truncate">{{ pane.description }}</span>
           </div>
           <!-- ペインボディ -->
-          <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5 bg-black/20 max-h-[50vh]">
+          <div
+            class="p-2 flex flex-col gap-1.5 bg-black/20"
+            :class="flowMode ? '' : 'flex-1 overflow-y-auto max-h-[50vh]'"
+          >
             <template v-for="entry in pane.entries" :key="entry.uuid ?? entry.timestamp">
               <div
                 v-if="!isEmptyEntry(entry)"
