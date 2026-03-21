@@ -119,6 +119,8 @@ function isToolResultEntry(entry: Entry): boolean {
 
 const filteredConversations = computed(() => {
   return state.conversations.filter(entry => {
+    // progress, system 等の内部エントリは常に除外
+    if (entry.type !== 'user' && entry.type !== 'assistant') return false
     if (entry._isSubagent) return state.filters.subagents !== 'hidden'
     if (isHook(entry)) return state.filters.hooks
     if (isToolResultEntry(entry)) return state.filters.tools !== 'hidden'
