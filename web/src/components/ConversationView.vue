@@ -84,6 +84,25 @@ function hasThinkingOnly(entry: Entry): boolean {
   return hasThinking && !hasText && !hasToolUse
 }
 
+function isEmptyEntry(entry: Entry): boolean {
+  const text = getTextContent(entry)
+  if (text.trim()) return false
+  if (isToolUse(entry)) return false
+  if (hasThinkingOnly(entry)) return false
+  if (isHook(entry)) return false
+  if (isToolResultEntry(entry)) return false
+  // content が全くないか、空の配列
+  const content = entry.message?.content
+  if (!content) return true
+  if (Array.isArray(content) && content.length === 0) return true
+  // type が text だが中身が空
+  if (Array.isArray(content) && content.every(c =>
+    (c.type === 'text' && !c.text?.trim()) ||
+    (c.type !== 'text' && c.type !== 'tool_use' && c.type !== 'thinking' && c.type !== 'tool_result')
+  )) return true
+  return false
+}
+
 function getHookPreview(entry: Entry): string {
   const content = entry.message?.content
   if (typeof content === 'string') {
@@ -249,9 +268,9 @@ function highlightText(text: string, search: string): string {
             </div>
           </div>
 
-          <!-- 通常メッセージ -->
+          <!-- 通常メッセージ（空エントリは非表示） -->
           <div
-            v-else
+            v-else-if="!isEmptyEntry(item.entry)"
             class="rounded-lg px-3.5 py-2.5 max-w-[80%] text-[13px] leading-relaxed"
             :class="item.entry.type === 'user'
               ? 'bg-user-bg self-end ml-auto'
