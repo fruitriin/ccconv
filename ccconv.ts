@@ -648,7 +648,10 @@ function showUsage(): void {
 
 const cmd = args[0];
 
-if (!cmd || cmd === "talk") {
+if (cmd === "--version" || cmd === "-v") {
+  const pkg = await Bun.file(join(import.meta.dir, "package.json")).json();
+  console.log(`ccconv v${pkg.version}`);
+} else if (!cmd || cmd === "talk") {
   cmdTalk(cmd ? args.slice(1) : []);
 } else if (cmd === "raws") {
   cmdRaws(args.slice(1));

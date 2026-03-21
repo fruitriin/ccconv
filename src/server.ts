@@ -37,7 +37,12 @@ function errorResponse(message: string, status = 400): Response {
 }
 
 async function serveStaticFile(pathname: string): Promise<Response> {
-  const webDistDir = join(import.meta.dir, "..", "web", "dist");
+  // src/server.ts から実行時は ../web/dist、バンドル後の ccconv.js（ルート）からは web/dist
+  const candidates = [
+    join(import.meta.dir, "web", "dist"),
+    join(import.meta.dir, "..", "web", "dist"),
+  ];
+  const webDistDir = candidates.find((d) => existsSync(d)) ?? candidates[0];
 
   if (!existsSync(webDistDir)) {
     return new Response(

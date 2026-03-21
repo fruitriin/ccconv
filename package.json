@@ -1,6 +1,6 @@
 {
   "name": "ccconv",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "A command-line tool for analyzing Claude Code conversation logs",
   "main": "ccconv.js",
   "bin": {
@@ -10,7 +10,7 @@
     "start": "node ccconv.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "bun build ccconv.ts --outfile ccconv.js --target bun",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "cd web && bun install && bun run build && cd .. && bun run build"
   },
   "keywords": [
     "claude",
@@ -29,7 +29,8 @@
     "ccconv.js",
     "README.md",
     "README.us.md",
-    "docs/screenshots/"
+    "docs/screenshots/",
+    "web/dist/"
   ],
   "repository": {
     "type": "git",
