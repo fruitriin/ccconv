@@ -69,6 +69,31 @@ function getToolSummary(tool: MessageContent): string {
   return `${name}(${firstKey}=${JSON.stringify(val)})`
 }
 
+function getToolResultContent(entry: Entry): { toolUseId: string; text: string }[] {
+  const content = entry.message?.content
+  if (!Array.isArray(content)) return []
+  const results: { toolUseId: string; text: string }[] = []
+  for (const c of content) {
+    if (c.type !== 'tool_result') continue
+    const id = c.tool_use_id ?? ''
+    let text = ''
+    if (typeof c.content === 'string') {
+      text = c.content
+    } else if (Array.isArray(c.content)) {
+      text = c.content
+        .filter((item: any) => item.type === 'text')
+        .map((item: any) => item.text ?? '')
+        .join('\n')
+      if (!text) {
+        // tool_reference 等
+        text = c.content.map((item: any) => item.tool_name ?? item.type ?? '').join(', ')
+      }
+    }
+    results.push({ toolUseId: id, text })
+  }
+  return results
+}
+
 function getThinkingItems(entry: Entry): MessageContent[] {
   const content = entry.message?.content
   if (!Array.isArray(content)) return []
@@ -160,6 +185,15 @@ function getSkillPreview(text: string): string {
 // 折りたたみ状態管理
 const collapsedThinking = ref<Set<number>>(new Set())
 const expandedLong = ref<Set<number>>(new Set())
+const expandedToolResult = ref<Set<string>>(new Set())
+
+function toggleToolResult(key: string) {
+  if (expandedToolResult.value.has(key)) {
+    expandedToolResult.value.delete(key)
+  } else {
+    expandedToolResult.value.add(key)
+  }
+}
 
 function toggleLong(idx: number) {
   if (expandedLong.value.has(idx)) {
@@ -272,15 +306,27 @@ function highlightText(text: string, search: string): string {
           <!-- Tool Result エントリ -->
           <div
             v-else-if="isToolResultEntry(item.entry)"
-            class="rounded-lg px-3 py-1.5 text-text-dim text-xs self-start bg-surface2 max-w-[80%] border border-[#333]"
+            class="rounded-lg px-3 py-1.5 text-xs self-start bg-surface2 max-w-[80%] border border-[#333]"
           >
-            <div class="flex items-center gap-1.5 mb-0.5 text-[11px]">
-              <span class="text-[#f0a500]">🔧</span>
-              <span class="text-text-dim">Tool Result</span>
-              <span class="text-text-dim">{{ formatTime(item.entry.timestamp) }}</span>
-            </div>
-            <div class="whitespace-pre-wrap break-words text-text-dim truncate max-h-16 overflow-hidden">
-              {{ getTextContent(item.entry) || '(no text content)' }}
+            <div
+              v-for="(tr, tri) in getToolResultContent(item.entry)"
+              :key="tri"
+              class="mb-1 last:mb-0"
+            >
+              <button
+                class="flex items-center gap-1.5 text-[11px] cursor-pointer bg-transparent border-none p-0 w-full text-left"
+                @click="toggleToolResult(`${idx}-${tri}`)"
+              >
+                <span class="text-[#f0a500]">🔧</span>
+                <span class="text-text-dim font-mono">{{ tr.toolUseId.slice(0, 12) || 'result' }}</span>
+                <span class="text-text-dim">{{ formatTime(item.entry.timestamp) }}</span>
+                <span class="text-text-dim">{{ tr.text.length }}文字</span>
+                <span class="ml-auto text-text-dim">{{ expandedToolResult.has(`${idx}-${tri}`) ? '▾' : '▸' }}</span>
+              </button>
+              <div
+                v-if="expandedToolResult.has(`${idx}-${tri}`)"
+                class="mt-1 whitespace-pre-wrap break-words text-text-dim text-[12px] max-h-[40vh] overflow-y-auto bg-black/30 rounded p-2"
+              >{{ tr.text }}</div>
             </div>
           </div>
 
