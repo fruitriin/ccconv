@@ -48,16 +48,26 @@ function getToolNames(entry: Entry): string[] {
   return content.filter(c => c.type === 'tool_use').map(c => c.name ?? '(tool)')
 }
 
+function isToolResult(entry: Entry): boolean {
+  const content = entry.message?.content
+  if (!Array.isArray(content)) return false
+  return content.some(c => c.type === 'tool_result')
+}
+
 function isEmptyEntry(entry: Entry): boolean {
   const text = getTextContent(entry)
   if (text.trim()) return false
   if (isToolUse(entry)) return false
+  // tool_result はテキストがなくても空ではない（Tools フィルタで制御すべき）
+  // ただしサブエージェント内では表示しても中身が見えないので空扱い
+  if (isToolResult(entry) && !text.trim()) return true
   const content = entry.message?.content
   if (!content) return true
+  if (typeof content === 'string' && !content.trim()) return true
   if (Array.isArray(content) && content.length === 0) return true
   if (Array.isArray(content) && content.every(c =>
     (c.type === 'text' && !c.text?.trim()) ||
-    (c.type !== 'text' && c.type !== 'tool_use' && c.type !== 'thinking' && c.type !== 'tool_result')
+    (c.type === 'tool_result')
   )) return true
   return false
 }
