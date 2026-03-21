@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch, nextTick, ref } from 'vue'
 import { useConversations } from '../composables/useConversations'
 import type { Entry } from '../composables/useConversations'
 import { getTextContent } from '../composables/useMessageUtils'
@@ -8,25 +8,53 @@ import MessageBubble from './MessageBubble.vue'
 
 const { state, filteredConversations } = useConversations()
 
+const containerRef = ref<HTMLElement | null>(null)
+
 // サブエージェントエントリをagentIdでグループ化
 interface SubagentGroup {
   agentId: string
   entries: Entry[]
 }
 
-// メインの会話エントリ（サブエージェントを除く）+ サブエージェントグループのリスト
 interface ConvItem {
   type: 'entry' | 'subagent'
   entry?: Entry
   group?: SubagentGroup
 }
 
+function getItemUuid(item: ConvItem): string {
+  if (item.type === 'entry' && item.entry) {
+    return item.entry.uuid ?? item.entry.timestamp ?? ''
+  }
+  if (item.type === 'subagent' && item.group) {
+    return 'subagent-' + item.group.agentId
+  }
+  return ''
+}
+
+function setAnchor(uuid: string) {
+  state.anchorUuid = uuid
+}
+
+// フィルタ変更時にアンカーへスクロール
+watch(
+  () => [state.filters.tools, state.filters.thinking, state.filters.subagents, state.filters.hooks, state.filters.user, state.filters.assistant],
+  () => {
+    if (!state.anchorUuid) return
+    nextTick(() => {
+      const el = document.querySelector(`[data-uuid="${state.anchorUuid}"]`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    })
+  }
+)
+
 // 表示用アイテムリスト
 const displayItems = computed<ConvItem[]>(() => {
   const entries = filteredConversations.value
   const searchText = state.searchText.toLowerCase()
 
-  // サブエージェントをグループ化（agentId → entries）
   const subagentMap = new Map<string, { entries: Entry[]; firstTimestamp: string }>()
   const mainEntries: Entry[] = []
 
@@ -54,7 +82,6 @@ const displayItems = computed<ConvItem[]>(() => {
   let subagentIdx = 0
 
   for (const entry of mainEntries) {
-    // サブエージェントを時系列に挿入
     while (
       subagentIdx < subagentGroups.length &&
       entry.timestamp &&
@@ -66,9 +93,7 @@ const displayItems = computed<ConvItem[]>(() => {
     }
 
     const text = getTextContent(entry)
-
     if (searchText && !text.toLowerCase().includes(searchText)) continue
-
     items.push({ type: 'entry', entry })
   }
 
@@ -83,7 +108,7 @@ const displayItems = computed<ConvItem[]>(() => {
 </script>
 
 <template>
-  <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2.5">
+  <div ref="containerRef" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2.5">
     <div v-if="!state.selectedSession" class="text-text-dim text-center mt-10 text-sm">
       セッションを選択してください
     </div>
@@ -95,18 +120,24 @@ const displayItems = computed<ConvItem[]>(() => {
     </div>
     <template v-else>
       <template v-for="(item, idx) in displayItems" :key="idx">
-        <MessageBubble
-          v-if="item.type === 'entry' && item.entry"
-          :entry="item.entry"
-          :search-text="state.searchText"
-          :idx="idx"
-        />
-        <SubagentTree
-          v-else-if="item.type === 'subagent' && item.group"
-          :entries="item.group.entries"
-          :agent-id="item.group.agentId"
-          :default-expanded="state.filters.subagents === 'expanded'"
-        />
+        <div
+          :data-uuid="getItemUuid(item)"
+          @click="setAnchor(getItemUuid(item))"
+          :class="state.anchorUuid === getItemUuid(item) ? 'ring-1 ring-accent rounded-lg' : ''"
+        >
+          <MessageBubble
+            v-if="item.type === 'entry' && item.entry"
+            :entry="item.entry"
+            :search-text="state.searchText"
+            :idx="idx"
+          />
+          <SubagentTree
+            v-else-if="item.type === 'subagent' && item.group"
+            :entries="item.group.entries"
+            :agent-id="item.group.agentId"
+            :default-expanded="state.filters.subagents === 'expanded'"
+          />
+        </div>
       </template>
     </template>
   </div>

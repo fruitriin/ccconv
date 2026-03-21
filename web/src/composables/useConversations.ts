@@ -89,6 +89,7 @@ const state = reactive({
   loading: false,
   sinceFilter: 'today' as string,
   searchText: '' as string,
+  anchorUuid: null as string | null,
   filters: {
     user: true,
     assistant: true,
